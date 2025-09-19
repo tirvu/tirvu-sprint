@@ -59,7 +59,7 @@ const upload = multer({
 });
 
 // Importar módulos para compressão e cache
-const sharp = require('sharp');
+const Jimp = require('jimp');
 const fsExtra = require('fs-extra');
 const NodeCache = require('node-cache');
 const compression = require('compression');
@@ -71,12 +71,13 @@ const fileCache = new NodeCache({ stdTTL: 3600, checkperiod: 600, useClones: fal
 const LOCAL_STORAGE_DIR = path.join(__dirname, '../storage');
 fsExtra.ensureDirSync(LOCAL_STORAGE_DIR);
 
-// Função para comprimir imagem
+// Função para comprimir imagem usando Jimp em vez de Sharp
 async function compressImage(inputPath, outputPath, quality = 80) {
   try {
-    await sharp(inputPath)
-      .jpeg({ quality })
-      .toFile(outputPath);
+    const image = await Jimp.read(inputPath);
+    await image
+      .quality(quality) // Definir qualidade da imagem
+      .writeAsync(outputPath);
     return true;
   } catch (err) {
     console.error('Erro ao comprimir imagem:', err);
