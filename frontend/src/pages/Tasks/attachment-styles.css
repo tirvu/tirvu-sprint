@@ -1,0 +1,218 @@
+/* Estilos para o componente de upload de anexos */
+.file-upload-container {
+  margin-top: 8px;
+}
+
+.file-upload-info {
+  margin-top: 5px;
+  color: #666;
+}
+
+.selected-files {
+  margin-top: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  background-color: #f9f9f9;
+}
+
+.selected-files p {
+  margin: 0 0 8px 0;
+  font-weight: 500;
+}
+
+.selected-files ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.selected-files li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.selected-files li:last-child {
+  border-bottom: none;
+}
+
+.remove-file {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  padding: 2px 5px;
+  transition: color 0.2s ease;
+}
+
+.remove-file:hover {
+  color: #bd2130;
+}
+
+/* Estilos para o modal de anexos */
+.attachments-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.attachment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.attachment-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.attachment-name {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.attachment-size {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.attachment-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-view {
+  color: #007bff;
+}
+
+/* Estilos para o preview de imagens */
+.attachment-preview {
+  margin-top: 15px;
+  border-top: 1px solid #ddd;
+  padding-top: 15px;
+  position: relative;
+}
+
+.attachment-preview-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+  max-height: 400px; /* Aumentado para melhor visualização */
+  overflow: auto; /* Permitir rolagem para imagens grandes */
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+  position: relative;
+  padding: 10px;
+}
+
+.attachment-preview-container img {
+  max-width: 100%;
+  max-height: 380px; /* Aumentado para melhor visualização */
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.attachment-preview-container iframe {
+  width: 100%;
+  height: 380px; /* Aumentado para melhor visualização */
+  border: none;
+}
+
+/* Indicador de carregamento */
+.loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #007bff;
+  font-size: 2rem;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.preview-title {
+  font-weight: 500;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.close-preview {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  padding: 2px 5px;
+  transition: color 0.2s ease;
+}
+
+.close-preview:hover {
+  color: #bd2130;
+}
+
+.btn-view {
+  color: #007bff;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 4px;
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+.btn-view:hover {
+  background-color: rgba(0, 123, 255, 0.2);
+}
+
+.btn-view-attachments {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-view-attachments:hover {
+  background-color: #5a6268;
+}
+
+/* Estilo para o badge de compressão */
+.compressed-badge {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: rgba(0, 123, 255, 0.8);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Ajuste para posicionamento relativo no container de preview */
+.attachment-preview-container {
+  position: relative;
+}

@@ -1,0 +1,28 @@
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.main-wrapper {
+  flex: 1;
+  margin-left: 250px; /* Largura da sidebar */
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  padding: 90px 20px 20px; /* Espaço para o header */
+  background-color: var(--background-light);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .main-wrapper {
+    margin-left: 0;
+  }
+  
+  .main-content {
+    padding-bottom: 80px; /* Espaço para o bottom navigation */
+  }
+}
