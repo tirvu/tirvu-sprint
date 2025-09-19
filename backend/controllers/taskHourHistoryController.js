@@ -236,7 +236,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     // Excluir cada anexo do FTP/local e do banco de dados
     if (attachments.length > 0) {
       // Importar módulos necessários
-      const fsExtra = require('fs-extra');
+      // fs-extra foi substituído por fs nativo
       const path = require('path');
       const LOCAL_STORAGE_DIR = path.join(__dirname, '../storage');
       

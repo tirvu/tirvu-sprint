@@ -60,7 +60,7 @@ const upload = multer({
 
 // Importar módulos para compressão e cache
 const Jimp = require('jimp');
-const fsExtra = require('fs-extra');
+// fs-extra foi substituído por fs nativo
 const NodeCache = require('node-cache');
 const compression = require('compression');
 
@@ -69,7 +69,10 @@ const fileCache = new NodeCache({ stdTTL: 3600, checkperiod: 600, useClones: fal
 
 // Diretório para armazenamento local de arquivos
 const LOCAL_STORAGE_DIR = path.join(__dirname, '../storage');
-fsExtra.ensureDirSync(LOCAL_STORAGE_DIR);
+// Garantir que o diretório existe
+if (!fs.existsSync(LOCAL_STORAGE_DIR)) {
+  fs.mkdirSync(LOCAL_STORAGE_DIR, { recursive: true });
+}
 
 // Função para comprimir imagem usando Jimp em vez de Sharp
 async function compressImage(inputPath, outputPath, quality = 80) {
@@ -175,7 +178,8 @@ async function uploadToFTP(localFilePath, remoteFileName, forceCompress = false)
     
     // Fallback: salvar localmente
     try {
-      await fsExtra.copy(fileToUpload, localStoragePath);
+      // Implementação de cópia de arquivo usando fs nativo
+      await fs.promises.copyFile(fileToUpload, localStoragePath);
       
       // Limpar arquivo comprimido temporário de forma assíncrona
       if (fileToUpload !== localFilePath && fs.existsSync(fileToUpload)) {
