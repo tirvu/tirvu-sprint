@@ -3,7 +3,8 @@
  */
 
 // URL base da API
-export const API_URL = 'http://localhost:3001';
+//export const API_URL = 'http://localhost:3001';
+export const API_URL = 'https://others-tirvu-sprint-backend.pvuzyy.easypanel.host';
 
 // Endpoints da API
 export const API_ENDPOINTS = {
