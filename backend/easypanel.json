@@ -1,0 +1,29 @@
+{
+  "name": "tirvu-sprint",
+  "version": "1.0.0",
+  "description": "Controle de horas tirvu",
+  "scripts": {
+    "start": "bash start-easypanel.sh"
+  },
+  "env": {
+    "NODE_ENV": "production",
+    "PORT": "3001",
+    "RUN_MIGRATIONS": "true"
+  },
+  "resources": {
+    "memory": "512Mi",
+    "cpu": "0.5"
+  },
+  "ports": [
+    {
+      "containerPort": 3001,
+      "servicePort": 3001
+    }
+  ],
+  "volumes": [
+    {
+      "name": "storage",
+      "mountPath": "/app/storage"
+    }
+  ]
+}
