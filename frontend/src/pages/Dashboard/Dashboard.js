@@ -430,13 +430,13 @@ const Dashboard = () => {
         <div className="indicators">
           <div className="indicator">
             <div className="indicator-label">Horas Trabalhadas:</div>
-            <div className="indicator-value">{collaborator.hoursWorked}h</div>
+            <div className="indicator-value">{collaborator.hoursWorked.toFixed(2)}h</div>
           </div>
           
           <div className="indicator">
             <div className="indicator-label">Horas Restantes ({hoursFilterTitle}):</div>
             <div className={`indicator-value ${collaborator.hoursRemainingToday < 0 ? 'negative' : ''}`}>
-              {collaborator.hoursRemainingToday}h
+              {collaborator.hoursRemainingToday.toFixed(2)}h
             </div>
           </div>
           
@@ -551,7 +551,7 @@ const Dashboard = () => {
                       style={{ width: `${progressPercentage}%` }}
                     ></div>
                     <span className="progress-text">
-                      <span className="hours-worked">{hoursWorked}h</span>
+                      <span className="hours-worked">{hoursWorked.toFixed(2)}h</span>
                       <span className="hours-separator">/</span>
                       <span className="hours-total">{totalCapacity}h</span>
                     </span>

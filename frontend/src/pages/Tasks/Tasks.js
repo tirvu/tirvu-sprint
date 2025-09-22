@@ -232,9 +232,9 @@ const Tasks = () => {
   
   // Opções de tipo
   const typeOptions = [
-    { value: 'feature', label: 'Novo Recurso' },
+    { value: 'feature', label: 'Inovação' },
     { value: 'bug', label: 'Correção' },
-    { value: 'chamado', label: 'Melhoria' }
+    { value: 'chamado', label: 'Otimização' }
   ];
 
   // Enviar formulário
@@ -759,11 +759,11 @@ const Tasks = () => {
   // Obter label para tipo
   const getTypeLabel = (type) => {
     const typeMap = {
-      'feature': 'Novo Recurso',
+      'feature': 'Inovação',
       'bug': 'Correção',
-      'chamado': 'Melhoria'
+      'chamado': 'Otimização'
     };
-    return typeMap[type] || 'Novo Recurso';
+    return typeMap[type] || 'Inovação';
   };
   
   // Obter classe CSS para prioridade
@@ -930,7 +930,18 @@ const Tasks = () => {
 
   return (
     <div className="tasks-container">
-      <ToastContainer position="top-right" autoClose={5000} />
+      <ToastContainer 
+        position="top-right" 
+        autoClose={5000} 
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        style={{ zIndex: 9999 }}
+      />
       <div className="tasks-header">
         <h1>Tarefas</h1>
         <button 
