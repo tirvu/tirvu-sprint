@@ -4,13 +4,13 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const ftp = require('basic-ftp');
 const { TaskHourAttachment, TaskHourHistory, User } = require('../models/associations');
 const { authMiddleware } = require('./middlewares');
 const os = require('os');
 const stream = require('stream');
 const crypto = require('crypto');
-const Jimp = require('jimp');
+const sharp = require('sharp');
+const FtpManager = require('../utils/ftpManager');
 
 // Sistema de cache para arquivos com duração otimizada
 const CACHE_DURATION = 60 * 60 * 1000; // 60 minutos em milissegundos
@@ -61,7 +61,7 @@ if (!fs.existsSync(LOCAL_STORAGE_DIR)) {
 
 // Função removida pois a compressão agora é feita diretamente no buffer
 
-// Função para upload para o FTP com fallback para armazenamento local - Otimizada para performance
+// Função para upload para o FTP com fallback para armazenamento local - Otimizada para performance e escalabilidade
 async function uploadToFTP(fileBuffer, remoteFileName, mimeType, forceCompress = false) {
   // Verificar se é uma imagem para compressão
   const fileExt = path.extname(remoteFileName).toLowerCase();
@@ -74,13 +74,20 @@ async function uploadToFTP(fileBuffer, remoteFileName, mimeType, forceCompress =
   if (isImage && (forceCompress || process.env.ALWAYS_COMPRESS_IMAGES === 'true')) {
     try {
       // Adicionar timeout para compressão
-      const compressionPromise = new Promise(async (resolve) => {
+      const compressionPromise = new Promise((resolve) => {
         try {
-          const image = await Jimp.read(fileBuffer);
-          const compressedBuffer = await image
-            .quality(80) // Definir qualidade da imagem
-            .getBufferAsync(mimeType);
-          resolve(compressedBuffer);
+          // Usar Sharp para compressão de imagem
+          sharp(fileBuffer)
+            .jpeg({ quality: 80 }) // Para JPEGs
+            .png({ quality: 80 })  // Para PNGs
+            .toBuffer()
+            .then(compressedBuffer => {
+              resolve(compressedBuffer);
+            })
+            .catch(err => {
+              console.error('Erro ao comprimir imagem com Sharp:', err);
+              resolve(null);
+            });
         } catch (err) {
           console.error('Erro ao comprimir imagem:', err);
           resolve(null);
@@ -115,43 +122,17 @@ async function uploadToFTP(fileBuffer, remoteFileName, mimeType, forceCompress =
     };
   }
   
-  // Tentar upload para FTP com timeout
-  const client = new ftp.Client();
-  client.ftp.verbose = false;
-  
-  // Definir um timeout global para a operação FTP
-  const ftpTimeout = setTimeout(() => {
-    try {
-      client.close();
-    } catch (e) {}
-  }, 20000); // 20 segundos de timeout
-  
+  // Usar o FtpManager para upload com retentativas automáticas
   try {
-    await client.access({
-      host: "216.158.231.74",
-      user: "vcarclub",
-      password: "7U@gSNCc",
-      secure: false,
-      connTimeout: 10000, // Reduzido para 10s
-      pasvTimeout: 10000, // Reduzido para 10s
-      keepalive: 30000
-    });
-    
-    // Navegar para a pasta de destino
-    await client.ensureDir('upload-tirvu-sprint');
-    
     // Criar um stream a partir do buffer
     const bufferStream = new stream.PassThrough();
     bufferStream.end(bufferToUpload);
     
-    // Upload do arquivo usando stream
-    await client.uploadFrom(bufferStream, remoteFileName);
-    
-    // Limpar o timeout
-    clearTimeout(ftpTimeout);
+    // Usar o FtpManager para upload com retentativas automáticas
+    const remotePath = await FtpManager.uploadFile(bufferStream, remoteFileName, 'upload-tirvu-sprint');
     
     return { 
-      path: `upload-tirvu-sprint/${remoteFileName}`, 
+      path: remotePath, 
       storage: 'ftp',
       compressed: wasCompressed 
     };
@@ -172,9 +153,6 @@ async function uploadToFTP(fileBuffer, remoteFileName, mimeType, forceCompress =
       console.error('Erro no armazenamento local:', localErr);
       throw err; // Retornar o erro original do FTP
     }
-  } finally {
-    clearTimeout(ftpTimeout);
-    client.close();
   }
 }
 
@@ -316,21 +294,10 @@ router.delete('/:id', authMiddleware, async (req, res) => {
         // Continuar mesmo se falhar a exclusão local
       }
     } else {
-      // Excluir do FTP
+      // Excluir do FTP usando o FtpManager
       try {
-        const client = new ftp.Client();
-        await client.access({
-          host: "216.158.231.74",
-          user: "vcarclub",
-          password: "7U@gSNCc",
-          secure: false,
-          connTimeout: 15000,
-          pasvTimeout: 15000,
-          keepalive: 30000
-        });
-        
-        await client.remove(`${attachment.filePath}`);
-        client.close();
+        // Usar o FtpManager para excluir o arquivo com retentativas automáticas
+        await FtpManager.deleteFile(attachment.filePath);
         
         // Verificar se existe versão em cache
         const localCachePath = path.join(LOCAL_STORAGE_DIR, `cache_${attachment.filename}`);
@@ -463,26 +430,16 @@ router.get('/file/:id', async (req, res) => {
       }
     }
     
-    // Buscar do FTP diretamente usando stream
-    const client = new ftp.Client();
-    client.ftp.verbose = false; // Desativar logs verbosos
-    
+    // Buscar do FTP diretamente usando stream com o FtpManager
     try {
-      await client.access({
-        host: "216.158.231.74",
-        user: "vcarclub",
-        password: "7U@gSNCc",
-        secure: false,
-        connTimeout: 10000, // Reduzido para 10s
-        pasvTimeout: 10000, // Reduzido para 10s
-        keepalive: 30000
-      });
-      
       // Criar um stream de passagem para receber os dados do FTP
       const passThrough = new stream.PassThrough();
       
-      // Iniciar o download como stream
-      client.downloadTo(passThrough, attachment.filePath, 0);
+      // Flag para controlar se o usuário fechou a conexão
+      let connectionClosed = false;
+      
+      // Iniciar o download como stream usando o FtpManager
+      const downloadPromise = FtpManager.downloadFile(passThrough, attachment.filePath);
       
       // Criar um buffer para armazenar os dados para cache
       const chunks = [];
@@ -498,55 +455,116 @@ router.get('/file/:id', async (req, res) => {
         }
       });
       
-      // Flag para controlar se o cliente FTP já foi fechado
-      let clientClosed = false;
-      
-      // Função para fechar o cliente FTP de forma segura
-      const safeCloseClient = () => {
-        if (!clientClosed) {
-          clientClosed = true;
-          try {
-            client.close();
-          } catch (err) {
-            console.error('Erro ao fechar cliente FTP:', err);
-          }
-        }
-      };
-      
       // Quando o stream terminar, salvar no cache local
       passThrough.on('end', () => {
-        // Se coletamos chunks suficientes, salvar no cache
-        if (chunks.length > 0) {
-          const fileBuffer = Buffer.concat(chunks);
-          
-          // Salvar no cache de memória
-          fileCache.set(cacheKey, {
-            buffer: fileBuffer,
-            fileType: attachment.fileType,
-            originalFilename: attachment.originalFilename
-          });
-          
-          // Salvar no cache de disco de forma assíncrona
-          fs.promises.writeFile(localCachePath, fileBuffer)
-            .catch(err => console.error('Erro ao salvar arquivo em cache local:', err));
+        try {
+          // Se coletamos chunks suficientes e a conexão não foi fechada prematuramente, salvar no cache
+          if (chunks.length > 0 && !connectionClosed) {
+            const fileBuffer = Buffer.concat(chunks);
+            
+            // Salvar no cache de memória
+            fileCache.set(cacheKey, {
+              buffer: fileBuffer,
+              fileType: attachment.fileType,
+              originalFilename: attachment.originalFilename
+            });
+            
+            // Salvar no cache de disco de forma assíncrona
+            fs.promises.writeFile(localCachePath, fileBuffer)
+              .catch(err => console.error('Erro ao salvar arquivo em cache local:', err));
+          }
+        } catch (err) {
+          console.error('Erro ao processar fim do stream:', err);
         }
-        
-        // Fechar o cliente FTP de forma segura
-        safeCloseClient();
       });
       
       // Garantir que o cliente FTP seja fechado em caso de erro
       passThrough.on('error', (err) => {
-        console.error('Erro no stream do FTP:', err);
-        safeCloseClient();
+        try {
+          // Verificar se é um erro ignorável
+          const ignorableErrors = [
+            'aborted',
+            'canceled',
+            'closed',
+            'destroyed',
+            'premature close'
+          ];
+          
+          const isIgnorableError = ignorableErrors.some(msg => 
+            err.message && err.message.toLowerCase().includes(msg.toLowerCase())
+          );
+          
+          if (!isIgnorableError) {
+            console.error('Erro no stream do FTP:', err.message);
+          }
+          
+          // Marcar que houve um erro na conexão
+          connectionClosed = true;
+        } finally {
+          // Garantir que o stream seja destruído
+          if (!passThrough.destroyed) {
+            passThrough.destroy();
+          }
+        }
       });
       
       res.on('close', () => {
-        safeCloseClient();
+        // Marcar que a conexão foi fechada pelo usuário
+        connectionClosed = true;
+        
+        // Destruir o stream de passagem para interromper a transferência
+        if (!passThrough.destroyed) {
+          passThrough.destroy();
+        }
+        
+        // O FtpManager vai lidar com o fechamento do cliente FTP
       });
+      
+      // Aguardar o download ser concluído
+      await downloadPromise;
     } catch (ftpError) {
-      safeCloseClient();
-      console.error('Erro ao acessar arquivo do FTP:', ftpError);
+      // Lista de mensagens de erro a serem ignoradas ou tratadas silenciosamente
+      const ignorableErrors = [
+        'User closed client during task',
+        'Client already closed',
+        'Connection closed',
+        'Socket closed'
+      ];
+      
+      // Verificar se o erro é de conexão fechada pelo usuário ou outro erro ignorável
+      const isIgnorableError = ignorableErrors.some(msg => 
+        ftpError.message && ftpError.message.includes(msg)
+      );
+      
+      // Apenas logar o erro se não for um erro ignorável
+      if (!isIgnorableError) {
+        console.error('Erro ao acessar arquivo via FTP:', ftpError.message);
+      }
+      
+      // Sempre tentar fechar o cliente FTP de forma segura
+      if (typeof safeCloseClient === 'function') {
+        safeCloseClient();
+      } else if (client && typeof client.close === 'function') {
+        try {
+          client.close();
+        } catch (closeError) {
+          // Verificar se o erro de fechamento deve ser ignorado
+          const shouldIgnoreCloseError = ignorableErrors.some(msg => 
+            closeError.message && closeError.message.includes(msg)
+          );
+          
+          if (!shouldIgnoreCloseError) {
+            console.error('Erro ao fechar cliente FTP:', closeError.message);
+          }
+        }
+      }
+      
+      // Se for um erro ignorável e a conexão foi fechada pelo usuário, não retornar erro
+      if (isIgnorableError && connectionClosed) {
+        return res.status(499).end(); // 499 é o código para "Client Closed Request"
+      }
+      
+      // Para outros erros, retornar mensagem de erro normal
       return res.status(500).json({ message: 'Erro ao acessar o arquivo' });
     }
   } catch (error) {
