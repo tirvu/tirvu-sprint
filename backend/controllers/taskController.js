@@ -117,7 +117,7 @@ router.post('/', authMiddleware, async (req, res) => {
     });
     
     // Enviar notificação para o usuário dono da tarefa (se não for o criador da tarefa)
-    if (assignedUser && assignedUser.id !== req.user.id && assignedUser.phoneNumber) {
+    if (assignedUser && assignedUser.phoneNumber) {
       const sprintInfo = backlog.Sprint ? `da sprint ${backlog.Sprint.name}` : '';
       const message = `Olá ${assignedUser.name}, uma nova tarefa foi atribuída a você: "${task.title}" do backlog "${backlog.title}" ${sprintInfo}. Por favor, verifique no sistema.`;
       
