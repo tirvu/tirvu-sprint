@@ -9,7 +9,6 @@ const { authMiddleware } = require('./middlewares');
 const os = require('os');
 const stream = require('stream');
 const crypto = require('crypto');
-const sharp = require('sharp');
 const FtpManager = require('../utils/ftpManager');
 
 // Sistema de cache para arquivos com duração otimizada
@@ -46,6 +45,8 @@ const upload = multer({
 });
 
 // fs-extra foi substituído por fs nativo
+// Importar o Sharp configurado para multi-plataforma
+const sharp = require('../sharp.config');
 const NodeCache = require('node-cache');
 const compression = require('compression');
 
@@ -76,7 +77,7 @@ async function uploadToFTP(fileBuffer, remoteFileName, mimeType, forceCompress =
       // Adicionar timeout para compressão
       const compressionPromise = new Promise((resolve) => {
         try {
-          // Usar Sharp para compressão de imagem
+          // Usar Sharp configurado para compressão de imagem
           sharp(fileBuffer)
             .jpeg({ quality: 80 }) // Para JPEGs
             .png({ quality: 80 })  // Para PNGs

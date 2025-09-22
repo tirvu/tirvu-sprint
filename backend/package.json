@@ -9,7 +9,9 @@
     "migrate": "npx sequelize-cli db:migrate",
     "migrate:undo": "npx sequelize-cli db:migrate:undo",
     "check-deps": "node check-dependencies.js",
-    "setup": "npm run check-deps && npm run migrate"
+    "setup": "npm run check-deps && npm run migrate",
+    "install-sharp": "node install-sharp.js",
+    "postinstall": "node install-sharp.js"
   },
   "repository": {
     "type": "git",
