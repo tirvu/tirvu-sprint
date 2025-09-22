@@ -173,6 +173,32 @@ router.get('/dashboard/collaborators', authMiddleware, adminMiddleware, async (r
         order: [['updatedAt', 'DESC']]
       });
       
+      // Contar tarefas por status para este colaborador
+      const completedTasks = await Task.count({
+        where: { 
+          userId: user.id,
+          status: 'completed'
+        }
+      });
+      
+      const inProgressTasks = await Task.count({
+        where: { 
+          userId: user.id,
+          status: 'in_progress'
+        }
+      });
+      
+      const pendingTasks = await Task.count({
+        where: { 
+          userId: user.id,
+          status: 'pending'
+        }
+      });
+      
+      // Calcular taxa de conclusão se houver tarefas
+      const totalTasks = completedTasks + inProgressTasks + pendingTasks;
+      const taskCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      
       return {
         id: user.id,
         name: user.name,
@@ -180,6 +206,10 @@ router.get('/dashboard/collaborators', authMiddleware, adminMiddleware, async (r
         hoursWorked,
         hoursRemainingToday,
         hoursRemainingMonth,
+        completedTasks,
+        inProgressTasks,
+        pendingTasks,
+        taskCompletionRate,
         currentTasks: currentTasks.map(task => ({
           id: task.id,
           title: task.title,

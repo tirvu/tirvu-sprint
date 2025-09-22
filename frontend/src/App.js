@@ -50,6 +50,21 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
+// Componente de rota para não-colaboradores (admin ou outros roles futuros)
+const NonCollaboratorRoute = ({ children }) => {
+  const { isCollaborator, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="loading">Carregando...</div>;
+  }
+  
+  if (isCollaborator()) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return children;
+};
+
 function App() {
   return (
     <AuthProvider>
@@ -65,8 +80,16 @@ function App() {
             </ProtectedRoute>
           }>
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="sprints" element={<Sprints />} />
-            <Route path="backlogs" element={<Backlogs />} />
+            <Route path="sprints" element={
+              <NonCollaboratorRoute>
+                <Sprints />
+              </NonCollaboratorRoute>
+            } />
+            <Route path="backlogs" element={
+              <NonCollaboratorRoute>
+                <Backlogs />
+              </NonCollaboratorRoute>
+            } />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="users" element={
               <AdminRoute>

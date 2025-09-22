@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './BottomNavigation.css';
 
 const BottomNavigation = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isCollaborator } = useAuth();
 
   return (
     <div className="bottom-navigation">
@@ -14,15 +14,19 @@ const BottomNavigation = () => {
         <span>Dashboard</span>
       </NavLink>
       
-      <NavLink to="/sprints" className="nav-item">
-        <FontAwesomeIcon icon="fa-solid fa-tasks" />
-        <span>Sprints</span>
-      </NavLink>
-      
-      <NavLink to="/backlogs" className="nav-item">
-        <FontAwesomeIcon icon="fa-solid fa-list" />
-        <span>Backlogs</span>
-      </NavLink>
+      {!isCollaborator() && (
+        <>
+          <NavLink to="/sprints" className="nav-item">
+            <FontAwesomeIcon icon="fa-solid fa-tasks" />
+            <span>Sprints</span>
+          </NavLink>
+          
+          <NavLink to="/backlogs" className="nav-item">
+            <FontAwesomeIcon icon="fa-solid fa-list" />
+            <span>Backlogs</span>
+          </NavLink>
+        </>
+      )}
       
       <NavLink to="/tasks" className="nav-item">
         <FontAwesomeIcon icon="fa-solid fa-clipboard-check" />

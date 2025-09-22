@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import './Sidebar.css';
 
 const Sidebar = () => {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isCollaborator } = useAuth();
 
   return (
     <div className="sidebar">
@@ -22,18 +22,22 @@ const Sidebar = () => {
               <span>Dashboard</span>
             </NavLink>
           </li>
-          <li>
-            <NavLink to="/sprints" className={({ isActive }) => isActive ? 'active' : ''}>
-              <FontAwesomeIcon icon="fa-solid fa-tasks" />&nbsp;
-              <span>Sprints</span>
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/backlogs" className={({ isActive }) => isActive ? 'active' : ''}>
-              <FontAwesomeIcon icon="fa-solid fa-list" />&nbsp;
-              <span>Backlogs</span>
-            </NavLink>
-          </li>
+          {!isCollaborator() && (
+            <>
+              <li>
+                <NavLink to="/sprints" className={({ isActive }) => isActive ? 'active' : ''}>
+                  <FontAwesomeIcon icon="fa-solid fa-tasks" />&nbsp;
+                  <span>Sprints</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/backlogs" className={({ isActive }) => isActive ? 'active' : ''}>
+                  <FontAwesomeIcon icon="fa-solid fa-list" />&nbsp;
+                  <span>Backlogs</span>
+                </NavLink>
+              </li>
+            </>
+          )}
           <li>
             <NavLink to="/tasks" className={({ isActive }) => isActive ? 'active' : ''}>
               <FontAwesomeIcon icon="fa-solid fa-clipboard-check" />&nbsp;

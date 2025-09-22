@@ -1,3 +1,17 @@
+:root {
+  --card-bg: #fff;
+  --card-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  --primary-color: #4a6cf7;
+  --success-color: #4CAF50;
+  --warning-color: #FFC107;
+  --danger-color: #FF5722;
+  --text-primary: #333;
+  --text-secondary: #666;
+  --border-color: #f0f0f0;
+  --bg-light: #f9f9f9;
+  --border-radius: 10px;
+}
+
 .dashboard-container, .admin-dashboard {
   padding-top: 20px;
   padding-bottom: 20px;
@@ -51,11 +65,28 @@
   margin-left: 5px;
 }
 
-/* Filtro de data */
-.date-filter {
+/* Filtros */
+.filters-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.filter-section {
+  flex: 1;
+  min-width: 250px;
+}
+
+.filter-title {
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.date-filter, .hours-filter {
   display: flex;
   gap: 10px;
-  margin-bottom: 20px;
   flex-wrap: wrap;
 }
 
@@ -106,6 +137,85 @@
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+/* Layout de cards em linha */
+.cards-row {
+  display: flex;
+  gap: 25px;
+  margin-bottom: 30px;
+}
+
+/* Gráficos */
+.charts-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 25px;
+  margin-bottom: 30px;
+  flex: 1;
+}
+
+.chart-container {
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  padding: 20px;
+  height: 350px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chart-container:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.chart-header {
+  margin-bottom: 15px;
+}
+
+.chart-container h3 {
+  margin-top: 0;
+  margin-bottom: 5px;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.chart-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.chart-wrapper {
+  flex: 1;
+  position: relative;
+  background-color: transparent;
+}
+
+.backlogs-recentes {
+  height: 380px;
+}
+
+.backlogs-recentes .chart-wrapper canvas {
+  background-color: transparent !important;
+}
+
+/* Cabeçalho de seção */
+.section-header {
+  margin-bottom: 20px;
+}
+
+.section-header h2 {
+  font-size: 22px;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.section-description {
+  color: #666;
+  font-size: 14px;
 }
 
 /* Grid de colaboradores */
@@ -181,6 +291,80 @@
 
 .indicator-value.negative {
   color: #dc3545;
+}
+
+/* Barra de progresso */
+.progress-bar {
+  height: 20px;
+  background-color: #f0f0f0;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 10px;
+  z-index: 1;
+}
+
+.progress-bar span {
+  position: relative;
+  z-index: 2;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Indicadores de atividade */
+.activity-indicators {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+  padding: 15px;
+}
+
+.activity-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.activity-icon {
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+
+.activity-icon.completed {
+  color: #4CAF50;
+}
+
+.activity-icon.in-progress {
+  color: #2196F3;
+}
+
+.activity-icon.pending {
+  color: #FFC107;
+}
+
+.activity-count {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.activity-label {
+  font-size: 12px;
+  color: #666;
 }
 
 .current-task {
@@ -259,6 +443,145 @@
   margin: 5px 0 0;
   color: #666;
   font-size: 14px;
+}
+
+/* Card de Progresso de Usuários */
+.user-progress-card {
+  background-color: var(--card-bg);
+  border-radius: 10px;
+  box-shadow: var(--card-shadow);
+  padding: 20px;
+  max-width: 600px;
+  flex: 1;
+}
+
+.user-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.user-progress-card h2 {
+  font-size: 20px;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.user-progress-legend {
+  display: flex;
+  gap: 12px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.legend-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.user-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-progress-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  background-color: var(--bg-light);
+  border-radius: 8px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.user-progress-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+.user-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.user-capacity {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.user-hours-progress {
+  flex: 1;
+}
+
+.progress-bar {
+  height: 20px;
+  background-color: #f0f0f0;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1) inset;
+}
+
+.progress.status-high {
+  background-color: var(--success-color);
+}
+
+.progress.status-medium {
+  background-color: var(--warning-color);
+}
+
+.progress.status-low {
+  background-color: var(--danger-color);
+}
+
+.progress-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+}
+
+.hours-worked {
+  font-weight: 700;
+}
+
+.hours-separator {
+  margin: 0 4px;
+  opacity: 0.7;
+}
+
+.hours-total {
+  opacity: 0.7;
 }
 
 /* Minhas Tarefas */
@@ -366,6 +689,20 @@
   .stats-container {
     grid-template-columns: repeat(2, 1fr);
   }
+  
+  .collaborators-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+  
+  .cards-row {
+    flex-direction: column;
+  }
+  
+  .user-progress-card,
+  .charts-container {
+    width: 100%;
+    margin-bottom: 20px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -375,5 +712,59 @@
   
   .tasks-list {
     grid-template-columns: 1fr;
+  }
+  
+  .collaborators-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .indicators {
+    grid-template-columns: 1fr;
+  }
+  
+  .activity-indicators {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .activity-indicator {
+    padding: 10px 0;
+  }
+  
+  .collaborator-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .user-progress-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .user-progress-legend {
+    margin-top: 10px;
+  }
+  
+  .user-progress-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .user-info {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .user-hours-progress {
+    width: 100%;
+  }
+  
+  .user-name {
+    font-size: 14px;
+    margin-bottom: 0;
+    display: block;
   }
 }
