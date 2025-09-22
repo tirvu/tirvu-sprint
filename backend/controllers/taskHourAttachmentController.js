@@ -10,6 +10,7 @@ const { authMiddleware } = require('./middlewares');
 const os = require('os');
 const stream = require('stream');
 const crypto = require('crypto');
+const Jimp = require('jimp');
 
 // Sistema de cache para arquivos com duração otimizada
 const CACHE_DURATION = 60 * 60 * 1000; // 60 minutos em milissegundos
@@ -58,8 +59,6 @@ const upload = multer({
   }
 });
 
-// Importar módulos para compressão e cache
-const Jimp = require('jimp');
 // fs-extra foi substituído por fs nativo
 const NodeCache = require('node-cache');
 const compression = require('compression');
