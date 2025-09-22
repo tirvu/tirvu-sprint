@@ -20,23 +20,9 @@ function generateFileHash(filePath, userId) {
   return crypto.createHash('md5').update(`${filePath}-${userId}`).digest('hex');
 }
 
-// Configuração do multer para upload temporário
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const tempDir = path.join(__dirname, '../temp-uploads');
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
-    cb(null, tempDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueFilename = `${uuidv4()}${path.extname(file.originalname)}`;
-    cb(null, uniqueFilename);
-  }
-});
-
+// Configuração do multer para upload em memória
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB
   },
@@ -73,49 +59,48 @@ if (!fs.existsSync(LOCAL_STORAGE_DIR)) {
   fs.mkdirSync(LOCAL_STORAGE_DIR, { recursive: true });
 }
 
-// Função para comprimir imagem usando Jimp em vez de Sharp
-async function compressImage(inputPath, outputPath, quality = 80) {
-  try {
-    const image = await Jimp.read(inputPath);
-    await image
-      .quality(quality) // Definir qualidade da imagem
-      .writeAsync(outputPath);
-    return true;
-  } catch (err) {
-    console.error('Erro ao comprimir imagem:', err);
-    return false;
-  }
-}
+// Função removida pois a compressão agora é feita diretamente no buffer
 
 // Função para upload para o FTP com fallback para armazenamento local - Otimizada para performance
-async function uploadToFTP(localFilePath, remoteFileName, forceCompress = false) {
+async function uploadToFTP(fileBuffer, remoteFileName, mimeType, forceCompress = false) {
   // Verificar se é uma imagem para compressão
-  const fileExt = path.extname(localFilePath).toLowerCase();
+  const fileExt = path.extname(remoteFileName).toLowerCase();
   const isImage = ['.jpg', '.jpeg', '.png'].includes(fileExt);
   
   // Comprimir imagem se aplicável - com timeout para evitar bloqueios
-  let fileToUpload = localFilePath;
+  let bufferToUpload = fileBuffer;
   let wasCompressed = false;
   
   if (isImage && (forceCompress || process.env.ALWAYS_COMPRESS_IMAGES === 'true')) {
     try {
-      const compressedFilePath = `${localFilePath}.compressed${fileExt}`;
       // Adicionar timeout para compressão
-      const compressionPromise = compressImage(localFilePath, compressedFilePath);
+      const compressionPromise = new Promise(async (resolve) => {
+        try {
+          const image = await Jimp.read(fileBuffer);
+          const compressedBuffer = await image
+            .quality(80) // Definir qualidade da imagem
+            .getBufferAsync(mimeType);
+          resolve(compressedBuffer);
+        } catch (err) {
+          console.error('Erro ao comprimir imagem:', err);
+          resolve(null);
+        }
+      });
+      
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Timeout na compressão')), 15000)
       );
       
       // Usar Promise.race para limitar o tempo de compressão
-      const compressed = await Promise.race([compressionPromise, timeoutPromise]);
+      const compressedBuffer = await Promise.race([compressionPromise, timeoutPromise]);
       
-      if (compressed) {
-        fileToUpload = compressedFilePath;
+      if (compressedBuffer) {
+        bufferToUpload = compressedBuffer;
         wasCompressed = true;
       }
     } catch (compressErr) {
       console.error('Erro ou timeout na compressão:', compressErr);
-      // Continuar com o arquivo original se a compressão falhar
+      // Continuar com o buffer original se a compressão falhar
     }
   }
   
@@ -155,14 +140,12 @@ async function uploadToFTP(localFilePath, remoteFileName, forceCompress = false)
     // Navegar para a pasta de destino
     await client.ensureDir('upload-tirvu-sprint');
     
-    // Upload do arquivo
-    await client.uploadFrom(fileToUpload, remoteFileName);
+    // Criar um stream a partir do buffer
+    const bufferStream = new stream.PassThrough();
+    bufferStream.end(bufferToUpload);
     
-    // Limpar arquivo comprimido temporário de forma assíncrona
-    if (fileToUpload !== localFilePath && fs.existsSync(fileToUpload)) {
-      fs.promises.unlink(fileToUpload)
-        .catch(err => console.error('Erro ao remover arquivo temporário:', err));
-    }
+    // Upload do arquivo usando stream
+    await client.uploadFrom(bufferStream, remoteFileName);
     
     // Limpar o timeout
     clearTimeout(ftpTimeout);
@@ -177,14 +160,8 @@ async function uploadToFTP(localFilePath, remoteFileName, forceCompress = false)
     
     // Fallback: salvar localmente
     try {
-      // Implementação de cópia de arquivo usando fs nativo
-      await fs.promises.copyFile(fileToUpload, localStoragePath);
-      
-      // Limpar arquivo comprimido temporário de forma assíncrona
-      if (fileToUpload !== localFilePath && fs.existsSync(fileToUpload)) {
-        fs.promises.unlink(fileToUpload)
-          .catch(err => console.error('Erro ao remover arquivo temporário:', err));
-      }
+      // Salvar o buffer diretamente no sistema de arquivos
+      await fs.promises.writeFile(localStoragePath, bufferToUpload);
       
       return { 
         path: remoteFileName, 
@@ -235,10 +212,10 @@ router.post('/:taskHourHistoryId', authMiddleware, upload.array('attachments', 5
         const forceCompress = isImage && shouldCompress;
         
         // Gerar nome de arquivo único
-        const remoteFileName = `${path.parse(file.filename).name}${path.extname(file.originalname)}`;
+        const remoteFileName = `${uuidv4()}${path.extname(file.originalname)}`;
         
         // Upload para o FTP com fallback para armazenamento local
-        const uploadResult = await uploadToFTP(file.path, remoteFileName, forceCompress);
+        const uploadResult = await uploadToFTP(file.buffer, remoteFileName, file.mimetype, forceCompress);
         
         // Verificar se foi comprimido
         const isCompressed = uploadResult.compressed || false;
@@ -255,10 +232,6 @@ router.post('/:taskHourHistoryId', authMiddleware, upload.array('attachments', 5
           taskHourHistoryId,
           userId
         });
-        
-        // Remover arquivo temporário de forma assíncrona
-        fs.promises.unlink(file.path)
-          .catch(err => console.error(`Erro ao remover arquivo temporário ${file.path}:`, err));
         
         return attachment;
       } catch (err) {
