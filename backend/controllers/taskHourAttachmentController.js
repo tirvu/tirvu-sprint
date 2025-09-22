@@ -457,8 +457,8 @@ router.get('/file/:id', async (req, res) => {
     }
     
     // Se não for local ou o arquivo não existir, tentar FTP
-    // Criar diretório temporário para o arquivo
-    let tempDir = path.join(os.tmpdir(), 'tirvu-temp');
+    // Criar diretório temporário para o arquivo na raiz do projeto
+    let tempDir = path.join(__dirname, '../../temp-uploads');
     if (!fs.existsSync(tempDir)) {
       try {
         fs.mkdirSync(tempDir, { recursive: true });
