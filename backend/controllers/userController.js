@@ -140,7 +140,7 @@ router.post('/login', async (req, res) => {
 router.get('/', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const users = await User.findAll({
-      attributes: ['id', 'name', 'email', 'role', 'capacity', 'active', 'createdAt']
+      attributes: ['id', 'name', 'email', 'role', 'phoneNumber', 'capacity', 'active', 'createdAt']
     });
     return res.json(users);
   } catch (error) {
