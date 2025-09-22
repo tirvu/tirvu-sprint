@@ -418,6 +418,18 @@ const Users = () => {
                 <option value="admin">Administrador</option>
               </select>
             </div>
+
+            <div className="form-group">
+              <label htmlFor="edit-password">Nova Senha</label>
+              <input
+                type="password"
+                id="edit-password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Deixe em branco para manter a senha atual"
+              />
+            </div>
           </div>
           
           <div className="form-group">

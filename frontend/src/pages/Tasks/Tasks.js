@@ -232,9 +232,9 @@ const Tasks = () => {
   
   // Opções de tipo
   const typeOptions = [
-    { value: 'feature', label: 'Feature' },
-    { value: 'bug', label: 'Bug' },
-    { value: 'chamado', label: 'Chamado' }
+    { value: 'feature', label: 'Novo Recurso' },
+    { value: 'bug', label: 'Correção' },
+    { value: 'chamado', label: 'Melhoria' }
   ];
 
   // Enviar formulário
@@ -760,7 +760,7 @@ const Tasks = () => {
   const getTypeLabel = (type) => {
     const typeMap = {
       'feature': 'Novo Recurso',
-      'bug': 'Bug',
+      'bug': 'Correção',
       'chamado': 'Melhoria'
     };
     return typeMap[type] || 'Novo Recurso';
@@ -785,7 +785,14 @@ const Tasks = () => {
     <div className="table-actions">
       <button 
         className="btn-start-task"
-        onClick={() => updateTaskStatus(row.id, 'in_progress')}
+        onClick={() => {
+          // Verificar se o usuário logado é o responsável pela tarefa
+          if (String(row.raw.userId) === String(user.id)) {
+            updateTaskStatus(row.id, 'in_progress');
+          } else {
+            toast.error('Somente o responsável pela tarefa pode iniciá-la.');
+          }
+        }}
       >
         <FontAwesomeIcon icon="play" /> Iniciar
       </button>
@@ -923,6 +930,7 @@ const Tasks = () => {
 
   return (
     <div className="tasks-container">
+      <ToastContainer position="top-right" autoClose={5000} />
       <div className="tasks-header">
         <h1>Tarefas</h1>
         <button 
@@ -1078,6 +1086,7 @@ const Tasks = () => {
                 value={formData.userId}
                 onChange={handleChange}
               >
+                <option value="">Eu mesmo</option>
                 {users.map(u => (
                   <option key={u.id} value={u.id}>
                     {u.name}
