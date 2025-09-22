@@ -147,7 +147,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
     
     // Atualizar status
-    if (status && ['planned', 'in_progress', 'completed'].includes(status)) {
+    if (status && ['planned', 'in_progress', 'completed', 'cancelled'].includes(status)) {
       sprint.status = status;
     }
     

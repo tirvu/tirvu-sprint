@@ -1,7 +1,7 @@
 .sprints-container {
   padding-top: 20px;
   padding-bottom: 20px;
-  max-width: 1200px;
+  /*max-width: 1200px;/*/
   margin: 0 auto;
 }
 
@@ -98,13 +98,6 @@
   padding: 15px;
   border-radius: 4px;
   margin-bottom: 20px;
-}
-
-/* Estilos para o modal de detalhes da sprint */
-.sprint-details-modal {
-  padding: 15px;
-  max-height: 80vh;
-  overflow-y: auto;
 }
 
 .sprint-info {

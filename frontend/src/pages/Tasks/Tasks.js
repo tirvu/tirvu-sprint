@@ -765,7 +765,16 @@ const Tasks = () => {
         <h1>Tarefas</h1>
         <button 
           className="btn-add-task" 
-          onClick={() => setShowForm(true)}
+          onClick={() => {
+            setFormData({
+              title: '',
+              description: '',
+              backlogId: '',
+              userId: '',
+              estimatedHours: ''
+            });
+            setShowForm(true);
+          }}
           title={'Adicionar nova tarefa'}
         >
           <FontAwesomeIcon icon="plus" /> Nova Tarefa

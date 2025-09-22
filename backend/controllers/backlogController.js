@@ -42,7 +42,11 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const backlog = await Backlog.findByPk(id, {
       include: [{
         model: Task,
-        as: 'Tasks'
+        as: 'Tasks',
+        include: [{
+          model: require('../models').User,
+          attributes: ['id', 'name']
+        }]
       }, {
         model: Sprint,
         attributes: ['id', 'name', 'status']

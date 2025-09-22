@@ -20,7 +20,7 @@ const Sprint = sequelize.define('Sprint', {
     allowNull: false
   },
   status: {
-    type: DataTypes.ENUM('planned', 'in_progress', 'completed'),
+    type: DataTypes.ENUM('planned', 'in_progress', 'completed', 'cancelled'),
     defaultValue: 'planned'
   },
   description: {

@@ -13,7 +13,9 @@ const Backlogs = () => {
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [backlogToDelete, setBacklogToDelete] = useState(null);
+  const [backlogDetails, setBacklogDetails] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -43,6 +45,20 @@ const Backlogs = () => {
 
     fetchData();
   }, []);
+  
+  // Buscar detalhes do backlog com tarefas
+  const fetchBacklogDetails = async (backlogId) => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_ENDPOINTS.BACKLOGS}/${backlogId}`);
+      setBacklogDetails(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Erro ao buscar detalhes do backlog:', err);
+      setError('Erro ao carregar detalhes do backlog. Por favor, tente novamente.');
+      setLoading(false);
+    }
+  };
   
   // Encontrar a sprint atual (em progresso)
   const getCurrentSprint = () => {
@@ -196,7 +212,11 @@ const Backlogs = () => {
   // Ações da tabela
   const tableActions = (backlog) => (
     <div>
-      <button className="action-btn view" title="Ver Detalhes">
+      <button className="action-btn view" title="Ver Detalhes" onClick={(e) => {
+        e.stopPropagation();
+        fetchBacklogDetails(backlog.id);
+        setShowDetails(true);
+      }}>
         <FontAwesomeIcon icon="fa-solid fa-eye" />
       </button>
       <button className="action-btn edit" title="Editar" onClick={(e) => {
@@ -338,6 +358,86 @@ const Backlogs = () => {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Modal de detalhes do backlog */}
+      <Modal isOpen={showDetails} onClose={() => setShowDetails(false)} title="Detalhes do Backlog">
+        {backlogDetails && (
+          <div className="backlog-details">
+            <div className="detail-card">
+              <div className="detail-header">
+                <h2>{backlogDetails.title}</h2>
+                <span className={`status-badge ${getStatusClass(backlogDetails.status)}`}>
+                  {getStatusLabel(backlogDetails.status)}
+                </span>
+              </div>
+              
+              <div className="detail-section">
+                <h3>Descrição</h3>
+                <p className="detail-description">{backlogDetails.description || 'Sem descrição'}</p>
+              </div>
+              
+              <div className="detail-row">
+                <div className="detail-col">
+                  <div className="detail-item">
+                    <h3>Prioridade</h3>
+                    <p className={`priority-badge ${getPriorityClass(backlogDetails.priority)}`}>
+                      {getPriorityLabel(backlogDetails.priority)}
+                    </p>
+                  </div>
+                  
+                  <div className="detail-item">
+                    <h3>Sprint</h3>
+                    <p>{getSprintName(backlogDetails.sprintId)}</p>
+                  </div>
+                </div>
+                
+                <div className="detail-col">
+                  <div className="detail-item">
+                    <h3>Data de Criação</h3>
+                    <p>{new Date(backlogDetails.createdAt).toLocaleDateString('pt-BR')}</p>
+                  </div>
+                  
+                  <div className="detail-item">
+                    <h3>Última Atualização</h3>
+                    <p>{new Date(backlogDetails.updatedAt || backlogDetails.createdAt).toLocaleDateString('pt-BR')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="detail-section tasks-section">
+              <h3>Tarefas Vinculadas</h3>
+              {backlogDetails.Tasks && backlogDetails.Tasks.length > 0 ? (
+                <div className="tasks-list">
+                  {backlogDetails.Tasks.map(task => (
+                    <div key={task.id} className="task-card">
+                      <div className="task-header">
+                        <h4>{task.title}</h4>
+                        <span className={`status-badge ${getStatusClass(task.status)}`}>
+                          {getStatusLabel(task.status)}
+                        </span>
+                      </div>
+                      <p className="task-description">{task.description || 'Sem descrição'}</p>
+                      <div className="task-footer">
+                        <div className="task-assignee">
+                          <FontAwesomeIcon icon="fa-solid fa-user" />
+                          <span>{task.User?.name || 'Não atribuído'}</span>
+                        </div>
+                        <div className="task-date">
+                          <FontAwesomeIcon icon="fa-solid fa-calendar" />
+                          <span>{new Date(task.createdAt).toLocaleDateString('pt-BR')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="no-tasks">Nenhuma tarefa vinculada a este backlog.</p>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

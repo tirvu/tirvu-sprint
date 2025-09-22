@@ -59,6 +59,16 @@ const Sprints = () => {
     try {
       setLoading(true);
       
+      // Verificar se já existe uma sprint em progresso quando tentamos definir uma nova como em progresso
+      if (formData.status === 'in_progress') {
+        const sprintInProgress = sprints.find(s => s.status === 'in_progress' && s.id !== formData.id);
+        if (sprintInProgress) {
+          setError('Já existe uma sprint em progresso. Apenas uma sprint pode estar em progresso por vez.');
+          setLoading(false);
+          return;
+        }
+      }
+      
       if (formData.id) {
         // Atualizar sprint existente
         const response = await axios.put(`${API_ENDPOINTS.SPRINTS}/${formData.id}`, formData);
@@ -70,6 +80,7 @@ const Sprints = () => {
       }
       
       setShowForm(false);
+      setError(null); // Limpar mensagens de erro
       
       // Reinicializar o formulário com datas padrão
       const today = new Date();
@@ -145,8 +156,10 @@ const Sprints = () => {
 
   // Calcular progresso
   const calculateProgress = (sprint) => {
+    // Se não houver backlogs, retorna 0
     if (!sprint.Backlogs || sprint.Backlogs.length === 0) return 0;
     
+    // Calcula o progresso com base nos backlogs completados
     const completedBacklogs = sprint.Backlogs.filter(backlog => backlog.status === 'completed').length;
     return Math.round((completedBacklogs / sprint.Backlogs.length) * 100);
   };
@@ -215,41 +228,120 @@ const Sprints = () => {
   ];
 
   // Ações da tabela
-  const tableActions = (sprint) => (
-    <div>
-      <button 
-        className="action-btn view" 
-        title="Ver Detalhes"
-        onClick={(e) => {
+  const tableActions = (sprint) => {
+    // Verificar se já existe uma sprint em progresso (diferente da atual)
+    const hasSprintInProgress = sprints.find(s => s.status === 'in_progress' && s.id !== sprint.id);
+    
+    return (
+      <div>
+        <button 
+          className="action-btn view" 
+          title="Ver Detalhes"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedSprint(sprint);
+            setShowDetailsModal(true);
+          }}
+        >
+          <FontAwesomeIcon icon="fa-solid fa-eye" />
+        </button>
+        <button className="action-btn edit" title="Editar" onClick={(e) => {
           e.stopPropagation();
-          setSelectedSprint(sprint);
-          setShowDetailsModal(true);
-        }}
-      >
-        <FontAwesomeIcon icon="fa-solid fa-eye" />
-      </button>
-      <button className="action-btn edit" title="Editar" onClick={(e) => {
-        e.stopPropagation();
-        // Formatar as datas para o formato esperado pelo input type="date"
-        const formattedSprint = {
-          ...sprint,
-          startDate: sprint.startDate.split('T')[0],
-          endDate: sprint.endDate.split('T')[0]
-        };
-        setFormData(formattedSprint);
-        setShowForm(true);
-      }}>
-        <FontAwesomeIcon icon="fa-solid fa-edit" />
-      </button>
-      <button className="action-btn delete" title="Excluir" onClick={(e) => {
-        e.stopPropagation();
-        setSprintToDelete(sprint);
-        setShowDeleteConfirm(true);
-      }}>
-        <FontAwesomeIcon icon="fa-solid fa-trash" />
-      </button>
-    </div>
-  );
+          // Formatar as datas para o formato esperado pelo input type="date"
+          const formattedSprint = {
+            ...sprint,
+            startDate: sprint.startDate.split('T')[0],
+            endDate: sprint.endDate.split('T')[0]
+          };
+          setFormData(formattedSprint);
+          setShowForm(true);
+        }}>
+          <FontAwesomeIcon icon="fa-solid fa-edit" />
+        </button>
+        {sprint.status === 'planned' && (
+          <button 
+            className="action-btn start" 
+            title="Iniciar Sprint" 
+            disabled={hasSprintInProgress}
+            onClick={async (e) => {
+              e.stopPropagation();
+              if (hasSprintInProgress) {
+                setError('Já existe uma sprint em progresso. Apenas uma sprint pode estar em progresso por vez.');
+                return;
+              }
+              try {
+                setLoading(true);
+                const updatedSprint = {...sprint, status: 'in_progress'};
+                const response = await axios.put(`${API_ENDPOINTS.SPRINTS}/${sprint.id}`, updatedSprint);
+                setSprints(prev => prev.map(item => item.id === sprint.id ? response.data : item));
+                setLoading(false);
+                setError(null); // Limpar mensagens de erro
+              } catch (err) {
+                console.error('Erro ao iniciar sprint:', err);
+                setError('Erro ao iniciar sprint. Por favor, tente novamente.');
+                setLoading(false);
+              }
+            }}
+          >
+            <FontAwesomeIcon icon="fa-solid fa-play" />
+          </button>
+        )}
+        {sprint.status === 'in_progress' && (
+          <button 
+            className="action-btn complete" 
+            title="Concluir Sprint" 
+            onClick={async (e) => {
+              e.stopPropagation();
+              try {
+                setLoading(true);
+                const updatedSprint = {...sprint, status: 'completed'};
+                const response = await axios.put(`${API_ENDPOINTS.SPRINTS}/${sprint.id}`, updatedSprint);
+                setSprints(prev => prev.map(item => item.id === sprint.id ? response.data : item));
+                setLoading(false);
+                setError(null); // Limpar mensagens de erro
+              } catch (err) {
+                console.error('Erro ao concluir sprint:', err);
+                setError('Erro ao concluir sprint. Por favor, tente novamente.');
+                setLoading(false);
+              }
+            }}
+          >
+            <FontAwesomeIcon icon="fa-solid fa-check" />
+          </button>
+        )}
+        {(sprint.status === 'planned' || sprint.status === 'in_progress') && (
+          <button 
+            className="action-btn cancel" 
+            title="Cancelar Sprint" 
+            onClick={async (e) => {
+              e.stopPropagation();
+              try {
+                setLoading(true);
+                const updatedSprint = {...sprint, status: 'cancelled'};
+                const response = await axios.put(`${API_ENDPOINTS.SPRINTS}/${sprint.id}`, updatedSprint);
+                setSprints(prev => prev.map(item => item.id === sprint.id ? response.data : item));
+                setLoading(false);
+                setError(null); // Limpar mensagens de erro
+              } catch (err) {
+                console.error('Erro ao cancelar sprint:', err);
+                setError('Erro ao cancelar sprint. Por favor, tente novamente.');
+                setLoading(false);
+              }
+            }}
+          >
+            <FontAwesomeIcon icon="fa-solid fa-ban" />
+          </button>
+        )}
+        <button className="action-btn delete" title="Excluir" onClick={(e) => {
+          e.stopPropagation();
+          setSprintToDelete(sprint);
+          setShowDeleteConfirm(true);
+        }}>
+          <FontAwesomeIcon icon="fa-solid fa-trash" />
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div className="sprints-container">
@@ -337,6 +429,14 @@ const Sprints = () => {
             </select>
           </div>
 
+          {formData.status === 'in_progress' && (
+            <div className="form-info">
+              <p className="info-text">Atenção: Apenas uma sprint pode estar em progresso por vez.</p>
+              {sprints.find(s => s.status === 'in_progress' && s.id !== formData.id) && (
+                <p className="warning-text">Já existe uma sprint em progresso. Ao salvar, a sprint atual em progresso será alterada.</p>
+              )}
+            </div>
+          )}
           <div className="form-actions">
             <button type="submit" className="btn-submit" disabled={loading}>
               {loading ? 'Salvando...' : 'Salvar Sprint'}
