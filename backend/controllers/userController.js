@@ -26,12 +26,20 @@ async function sendWhatsAppMessage(phoneNumber, message) {
     const phoneWithCountryCode = formattedPhone.startsWith('55') 
       ? formattedPhone 
       : `55${formattedPhone}`;
-    
+
     // Enviar mensagem via Z-API
-    const response = await axios.post(ZAPI_URL, {
-      phone: phoneWithCountryCode,
-      message: message
-    });
+    const response = await axios.post(
+      ZAPI_URL,
+      {
+        phone: phoneWithCountryCode,
+        message: message,
+      },
+      {
+        headers: {
+          'Client-Token': 'F6c3d2431a38b4030b492e0be32e59784S',
+        },
+      }
+    );
     
     console.log('Mensagem WhatsApp enviada com sucesso:', response.data);
     return true;
@@ -194,7 +202,7 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
     
     // Enviar mensagem WhatsApp se o número de telefone foi fornecido
     if (phoneNumber) {
-      const message = `Olá ${name}, bem-vindo(a) ao Tirvu Sprint! Seus dados de acesso são:\n\nEmail: ${email}\nSenha: ${password}\n\nAcesse: http://localhost:3000`;
+      const message = `Olá ${name}, bem-vindo(a) ao Tirvu Sprint! Seus dados de acesso são:\n\nEmail: ${email}\nSenha: ${password}`;
       
       try {
         await sendWhatsAppMessage(phoneNumber, message);
