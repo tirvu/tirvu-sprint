@@ -98,7 +98,9 @@ const Tasks = () => {
     description: '',
     backlogId: '',
     userId: '',
-    estimatedHours: ''
+    estimatedHours: '',
+    priority: 'media',
+    type: 'feature'
   });
   const [hoursFormData, setHoursFormData] = useState({
     description: '',
@@ -278,15 +280,8 @@ const Tasks = () => {
         // Criar nova tarefa
         const response = await axios.post(API_ENDPOINTS.TASKS, taskData);
         
-        // Se o usuário for collaborator, adicionar apenas se a tarefa pertencer a ele
-        if (user.role === 'collaborator') {
-          // Converter para string para garantir comparação correta
-          if (String(response.data.userId) === String(user.id)) {
-            setTasks(prev => [response.data, ...prev]);
-          }
-        } else {
-          setTasks(prev => [response.data, ...prev]);
-        }
+        // Recarregar todas as tarefas para garantir que a tabela seja atualizada corretamente
+        await fetchTasks();
       }
       
       setShowForm(false);

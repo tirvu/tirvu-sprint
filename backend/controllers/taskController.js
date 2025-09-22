@@ -79,7 +79,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Criar tarefa
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, description, status, priority, type, backlogId, userId } = req.body;
+    const { title, description, status, priority, type, backlogId, userId, estimatedHours } = req.body;
     
     // Validar entrada
     if (!title || !backlogId) {
@@ -110,6 +110,7 @@ router.post('/', authMiddleware, async (req, res) => {
       status: status || 'pending',
       priority: priority || 'media',
       type: type || 'feature',
+      estimatedHours: estimatedHours || 0,
       backlogId,
       userId: userId || req.user.id,
       createdBy: req.user.id
