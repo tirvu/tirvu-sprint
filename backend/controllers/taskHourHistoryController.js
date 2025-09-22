@@ -4,6 +4,8 @@ const { Task, User, TaskHourHistory, Backlog, Sprint } = require('../models/asso
 const { authMiddleware, adminMiddleware } = require('./middlewares');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
+const fs = require('fs');
+const path = require('path');
 
 // Obter histórico de horas de uma tarefa
 router.get('/task/:taskId', authMiddleware, async (req, res) => {

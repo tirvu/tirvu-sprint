@@ -458,9 +458,19 @@ router.get('/file/:id', async (req, res) => {
     
     // Se não for local ou o arquivo não existir, tentar FTP
     // Criar diretório temporário para o arquivo
-    const tempDir = path.join(os.tmpdir(), 'tirvu-temp');
+    let tempDir = path.join(os.tmpdir(), 'tirvu-temp');
     if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
+      try {
+        fs.mkdirSync(tempDir, { recursive: true });
+        console.log(`Diretório temporário criado: ${tempDir}`);
+      } catch (err) {
+        console.error(`Erro ao criar diretório temporário: ${err.message}`);
+        // Usar diretório alternativo se falhar
+        tempDir = path.join(__dirname, '../temp-uploads');
+        if (!fs.existsSync(tempDir)) {
+          fs.mkdirSync(tempDir, { recursive: true });
+        }
+      }
     }
     
     const tempFilePath = path.join(tempDir, attachment.filename);

@@ -56,8 +56,8 @@ const Sidebar = () => {
       </nav>
       
       <div className="sidebar-footer">
-        <button onClick={logout} className="logout-btn">
-          <FontAwesomeIcon icon="fa-solid fa-sign-out-alt" />
+        <button onClick={logout} className="logout-btn" style={{color: 'white'}}>
+          <FontAwesomeIcon icon="fa-solid fa-sign-out-alt" />&nbsp;
           <span>Sair</span>
         </button>
       </div>
