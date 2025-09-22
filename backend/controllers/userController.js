@@ -202,7 +202,7 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
     
     // Enviar mensagem WhatsApp se o número de telefone foi fornecido
     if (phoneNumber) {
-      const message = `Olá ${name}, bem-vindo(a) ao Tirvu Sprint! Seus dados de acesso são:\n\nEmail: ${email}\nSenha: ${password}`;
+      const message = `Olá ${name}, bem-vindo(a) ao Tirvu Sprint! Seus dados de acesso são:\n\nEmail: ${email}\nSenha: ${password}\n App: https://others-tirvu-sprint-frontend.pvuzyy.easypanel.host/`;
       
       try {
         await sendWhatsAppMessage(phoneNumber, message);
