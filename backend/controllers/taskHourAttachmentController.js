@@ -429,23 +429,6 @@ router.get('/file/:id', async (req, res) => {
     }
     
     // Se não for local ou o arquivo não existir, tentar FTP
-    // Criar diretório temporário para o arquivo na raiz do projeto
-    let tempDir = path.join(__dirname, '../../temp-uploads');
-    if (!fs.existsSync(tempDir)) {
-      try {
-        fs.mkdirSync(tempDir, { recursive: true });
-        console.log(`Diretório temporário criado: ${tempDir}`);
-      } catch (err) {
-        console.error(`Erro ao criar diretório temporário: ${err.message}`);
-        // Usar diretório alternativo se falhar
-        tempDir = path.join(__dirname, '../temp-uploads');
-        if (!fs.existsSync(tempDir)) {
-          fs.mkdirSync(tempDir, { recursive: true });
-        }
-      }
-    }
-    
-    const tempFilePath = path.join(tempDir, attachment.filename);
     const localCachePath = path.join(LOCAL_STORAGE_DIR, `cache_${attachment.filename}`);
     
     // Verificar se já existe uma versão em cache local do arquivo FTP
@@ -480,7 +463,7 @@ router.get('/file/:id', async (req, res) => {
       }
     }
     
-    // Buscar do FTP
+    // Buscar do FTP diretamente usando stream
     const client = new ftp.Client();
     client.ftp.verbose = false; // Desativar logs verbosos
     
@@ -495,62 +478,74 @@ router.get('/file/:id', async (req, res) => {
         keepalive: 30000
       });
       
-      // Baixar o arquivo
-      await client.downloadTo(tempFilePath, attachment.filePath);
+      // Criar um stream de passagem para receber os dados do FTP
+      const passThrough = new stream.PassThrough();
       
-      // Copiar para cache local de forma assíncrona
-      fs.promises.copyFile(tempFilePath, localCachePath)
-        .then(() => {
-          // Configurar cache após cópia bem-sucedida
-          try {
-            const fileStats = fs.statSync(tempFilePath);
-            if (fileStats.size < 10 * 1024 * 1024) { // Aumentado para 10MB
-              fs.promises.readFile(tempFilePath)
-                .then(fileBuffer => {
-                  fileCache.set(cacheKey, {
-                    buffer: fileBuffer,
-                    fileType: attachment.fileType,
-                    originalFilename: attachment.originalFilename
-                  });
-                })
-                .catch(err => console.error('Erro ao ler arquivo para cache:', err));
-            } else {
-              fileCache.set(cacheKey, {
-                filePath: localCachePath,
-                fileType: attachment.fileType,
-                originalFilename: attachment.originalFilename
-              });
-            }
-          } catch (err) {
-            console.error('Erro ao configurar cache após download FTP:', err);
-          }
-        })
-        .catch(err => console.error('Erro ao copiar arquivo para cache local:', err));
+      // Iniciar o download como stream
+      client.downloadTo(passThrough, attachment.filePath, 0);
       
-      // Enviar o arquivo
-      const fileStream = fs.createReadStream(tempFilePath);
-      fileStream.pipe(res);
+      // Criar um buffer para armazenar os dados para cache
+      const chunks = [];
       
-      // Limpar o arquivo após envio
-      fileStream.on('end', () => {
-        try {
-          fs.unlinkSync(tempFilePath);
-        } catch (err) {
-          console.error('Erro ao remover arquivo temporário:', err);
+      // Enviar o stream diretamente para o cliente
+      passThrough.pipe(res);
+      
+      // Coletar os dados para cache se o arquivo não for muito grande
+      passThrough.on('data', (chunk) => {
+        // Limitar o tamanho total para evitar consumo excessivo de memória
+        if (chunks.length * chunk.length < 10 * 1024 * 1024) { // 10MB
+          chunks.push(chunk);
         }
-        client.close();
       });
       
-      // Garantir que o cliente FTP seja fechado mesmo em caso de erro no stream
-      fileStream.on('error', () => {
-        client.close();
+      // Flag para controlar se o cliente FTP já foi fechado
+      let clientClosed = false;
+      
+      // Função para fechar o cliente FTP de forma segura
+      const safeCloseClient = () => {
+        if (!clientClosed) {
+          clientClosed = true;
+          try {
+            client.close();
+          } catch (err) {
+            console.error('Erro ao fechar cliente FTP:', err);
+          }
+        }
+      };
+      
+      // Quando o stream terminar, salvar no cache local
+      passThrough.on('end', () => {
+        // Se coletamos chunks suficientes, salvar no cache
+        if (chunks.length > 0) {
+          const fileBuffer = Buffer.concat(chunks);
+          
+          // Salvar no cache de memória
+          fileCache.set(cacheKey, {
+            buffer: fileBuffer,
+            fileType: attachment.fileType,
+            originalFilename: attachment.originalFilename
+          });
+          
+          // Salvar no cache de disco de forma assíncrona
+          fs.promises.writeFile(localCachePath, fileBuffer)
+            .catch(err => console.error('Erro ao salvar arquivo em cache local:', err));
+        }
+        
+        // Fechar o cliente FTP de forma segura
+        safeCloseClient();
+      });
+      
+      // Garantir que o cliente FTP seja fechado em caso de erro
+      passThrough.on('error', (err) => {
+        console.error('Erro no stream do FTP:', err);
+        safeCloseClient();
       });
       
       res.on('close', () => {
-        client.close();
+        safeCloseClient();
       });
     } catch (ftpError) {
-      client.close();
+      safeCloseClient();
       console.error('Erro ao acessar arquivo do FTP:', ftpError);
       return res.status(500).json({ message: 'Erro ao acessar o arquivo' });
     }
