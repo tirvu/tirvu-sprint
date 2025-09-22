@@ -23,11 +23,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Rotas
 app.get('/', (req, res) => {
-  res.json({ message: 'Bem-vindo à API do Tirvu Sprint' });
+  res.json({ message: 'Bem-vindo à API do T-Flow' });
 });
 
 // Importar e usar rotas
-app.use('/api/users', require('./controllers/userController'));
+const userController = require('./controllers/userController');
+app.use('/api/users', userController.router);
 app.use('/api/sprints', require('./controllers/sprintController'));
 app.use('/api/backlogs', require('./controllers/backlogController'));
 app.use('/api/tasks', require('./controllers/taskController'));

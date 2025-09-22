@@ -253,6 +253,11 @@ const Tasks = () => {
         taskData.userId = user.id;
       }
       
+      // Converter estimatedHours para número se não estiver vazio
+      if (taskData.estimatedHours) {
+        taskData.estimatedHours = parseFloat(taskData.estimatedHours);
+      }
+      
       if (formData.id) {
         // Atualizar tarefa existente
         const response = await axios.put(`${API_ENDPOINTS.TASKS}/${formData.id}`, taskData);
@@ -289,7 +294,10 @@ const Tasks = () => {
         title: '',
         description: '',
         backlogId: '',
-        userId: ''
+        userId: '',
+        estimatedHours: '',
+        priority: 'media',
+        type: 'feature'
       });
       setLoading(false);
     } catch (err) {
@@ -756,11 +764,11 @@ const Tasks = () => {
   // Obter label para tipo
   const getTypeLabel = (type) => {
     const typeMap = {
-      'feature': 'Feature',
+      'feature': 'Novo Recurso',
       'bug': 'Bug',
-      'chamado': 'Chamado'
+      'chamado': 'Melhoria'
     };
-    return typeMap[type] || 'Feature';
+    return typeMap[type] || 'Novo Recurso';
   };
   
   // Obter classe CSS para prioridade

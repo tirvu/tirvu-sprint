@@ -10,8 +10,8 @@ const Sidebar = () => {
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <img src="/favicon.png" alt="Tirvu Sprint" className="sidebar-logo" />
-        <h3>Tirvu Sprint</h3>
+        <img src="/favicon.png" alt="T-Flow" className="sidebar-logo" />
+        <h3>T-Flow</h3>
       </div>
       
       <nav className="sidebar-nav">

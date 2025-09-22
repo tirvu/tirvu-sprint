@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { Task, User, Backlog } = require('../models');
+const { Task, User, Backlog, Sprint } = require('../models');
 const { authMiddleware, adminMiddleware } = require('./middlewares');
+const { sendWhatsAppMessage } = require('./userController');
 
 // Obter todas as tarefas
 router.get('/', authMiddleware, async (req, res) => {
@@ -78,67 +79,56 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Criar tarefa
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, description, estimatedHours, backlogId, userId, priority, type } = req.body;
+    const { title, description, status, priority, type, backlogId, userId } = req.body;
     
     // Validar entrada
     if (!title || !backlogId) {
-      return res.status(400).json({ message: 'Título, backlog e horas estimadas são obrigatórios' });
+      return res.status(400).json({ message: 'Título e backlog são obrigatórios' });
     }
     
     // Verificar se o backlog existe
-    const backlog = await Backlog.findByPk(backlogId);
+    const backlog = await Backlog.findByPk(backlogId, {
+      include: [{ model: Sprint }]
+    });
     if (!backlog) {
-      return res.status(400).json({ message: 'Backlog não encontrado' });
+      return res.status(404).json({ message: 'Backlog não encontrado' });
     }
     
-    // Verificar se o usuário existe, se fornecido
-    let assignedUserId = userId;
+    // Verificar se o usuário existe (se fornecido)
+    let assignedUser = null;
     if (userId) {
-      const user = await User.findByPk(userId);
-      if (!user) {
-        return res.status(400).json({ message: 'Usuário não encontrado' });
+      assignedUser = await User.findByPk(userId);
+      if (!assignedUser) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
       }
-    } else {
-      // Se não for fornecido, atribuir ao usuário logado
-      assignedUserId = req.user.id;
     }
-    
-    // Validar prioridade
-    const validPriorities = ['baixa', 'media', 'alta', 'critica'];
-    const taskPriority = priority && validPriorities.includes(priority) ? priority : 'media';
-    
-    // Validar tipo
-    const validTypes = ['feature', 'bug', 'chamado'];
-    const taskType = type && validTypes.includes(type) ? type : 'feature';
     
     // Criar tarefa
     const task = await Task.create({
       title,
       description,
-      estimatedHours,
-      status: 'pending',
-      priority: taskPriority,
-      type: taskType,
-      hoursSpent: 0,
+      status: status || 'pending',
+      priority: priority || 'media',
+      type: type || 'feature',
       backlogId,
-      userId: assignedUserId
+      userId: userId || req.user.id,
+      createdBy: req.user.id
     });
     
-    // Buscar a tarefa com as relações
-    const createdTask = await Task.findByPk(task.id, {
-      include: [
-        {
-          model: User,
-          attributes: ['id', 'name']
-        },
-        {
-          model: Backlog,
-          attributes: ['id', 'title']
-        }
-      ]
-    });
+    // Enviar notificação para o usuário dono da tarefa (se não for o criador da tarefa)
+    if (assignedUser && assignedUser.id !== req.user.id && assignedUser.phoneNumber) {
+      const sprintInfo = backlog.Sprint ? `da sprint ${backlog.Sprint.name}` : '';
+      const message = `Olá ${assignedUser.name}, uma nova tarefa foi atribuída a você: "${task.title}" do backlog "${backlog.title}" ${sprintInfo}. Por favor, verifique no sistema.`;
+      
+      try {
+        await sendWhatsAppMessage(assignedUser.phoneNumber, message);
+      } catch (error) {
+        console.error('Erro ao enviar notificação WhatsApp:', error);
+        // Não interrompe o fluxo se a notificação falhar
+      }
+    }
     
-    return res.status(201).json(createdTask);
+    return res.status(201).json(task);
   } catch (error) {
     console.error('Erro ao criar tarefa:', error);
     return res.status(500).json({ message: 'Erro no servidor' });

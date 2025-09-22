@@ -17,8 +17,8 @@ const Header = () => {
       <div className="header-container">
         <div className="header-logo">
           <Link to="/dashboard">
-            <img src="/favicon.png" alt="Tirvu Sprint" />
-            <span className="header-title">Tirvu Sprint</span>
+            <img src="/favicon.png" alt="T-Flow" />
+            <span className="header-title">T-Flow</span>
           </Link>
         </div>
 

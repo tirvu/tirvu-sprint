@@ -31,9 +31,9 @@ const Login = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-logo">
-          <img src="/logo.webp" alt="Tirvu Sprint Logo" />
+          <img src="/logo.webp" alt="T-Flow Logo" />
         </div>
-        <h2>Tirvu Sprint</h2>
+        <h2>T-Flow</h2>
         <p className="login-subtitle">Sistema de controle de sprint</p>
         
         {error && <div className="login-error">{error}</div>}
