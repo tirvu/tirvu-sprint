@@ -13,6 +13,68 @@ import './attachment-styles.css';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+// Estilos para as tags de prioridade e tipo
+const priorityStyles = `
+  .priority-tag {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-align: center;
+  }
+  
+  .priority-baixa {
+    background-color: #e0f7fa;
+    color: #006064;
+  }
+  
+  .priority-media {
+    background-color: #e8f5e9;
+    color: #1b5e20;
+  }
+  
+  .priority-alta {
+    background-color: #fff3e0;
+    color: #e65100;
+  }
+  
+  .priority-critica {
+    background-color: #ffebee;
+    color: #b71c1c;
+  }
+  
+  .type-tag {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-align: center;
+  }
+  
+  .type-feature {
+    background-color: #e3f2fd;
+    color: #0d47a1;
+  }
+  
+  .type-bug {
+    background-color: #fce4ec;
+    color: #880e4f;
+  }
+  
+  .type-chamado {
+    background-color: #f3e5f5;
+    color: #4a148c;
+  }
+`;
+
+// Adicionar estilos ao documento
+const styleElement = document.createElement('style');
+styleElement.type = 'text/css';
+styleElement.appendChild(document.createTextNode(priorityStyles));
+document.head.appendChild(styleElement);
+
 const Tasks = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -157,6 +219,21 @@ const Tasks = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+  
+  // Opções de prioridade
+  const priorityOptions = [
+    { value: 'baixa', label: 'Baixa' },
+    { value: 'media', label: 'Média' },
+    { value: 'alta', label: 'Alta' },
+    { value: 'critica', label: 'Crítica' }
+  ];
+  
+  // Opções de tipo
+  const typeOptions = [
+    { value: 'feature', label: 'Feature' },
+    { value: 'bug', label: 'Bug' },
+    { value: 'chamado', label: 'Chamado' }
+  ];
 
   // Enviar formulário
   const handleSubmit = async (e) => {
@@ -574,6 +651,24 @@ const Tasks = () => {
     { key: 'backlog', header: 'Backlog' },
     { key: 'assignee', header: 'Responsável' },
     { key: 'estimate', header: 'Estimativa' },
+    { 
+      key: 'priority', 
+      header: 'Prioridade',
+      render: (row) => (
+        <div className={`priority-tag ${getPriorityClass(row.priority)}`}>
+          {getPriorityLabel(row.priority)}
+        </div>
+      ) 
+    },
+    { 
+      key: 'type', 
+      header: 'Tipo',
+      render: (row) => (
+        <div className={`type-tag type-${row.type}`}>
+          {getTypeLabel(row.type)}
+        </div>
+      ) 
+    },
     { key: 'actions', header: 'Ações' }
   ];
 
@@ -582,6 +677,24 @@ const Tasks = () => {
     { key: 'backlog', header: 'Backlog' },
     { key: 'assignee', header: 'Responsável' },
     { key: 'estimate', header: 'Estimativa' },
+    { 
+      key: 'priority', 
+      header: 'Prioridade',
+      render: (row) => (
+        <div className={`priority-tag ${getPriorityClass(row.priority)}`}>
+          {getPriorityLabel(row.priority)}
+        </div>
+      ) 
+    },
+    { 
+      key: 'type', 
+      header: 'Tipo',
+      render: (row) => (
+        <div className={`type-tag type-${row.type}`}>
+          {getTypeLabel(row.type)}
+        </div>
+      ) 
+    },
     { key: 'actions', header: 'Ações' }
   ];
 
@@ -590,6 +703,24 @@ const Tasks = () => {
     { key: 'backlog', header: 'Backlog' },
     { key: 'assignee', header: 'Responsável' },
     { key: 'estimate', header: 'Estimativa' },
+    { 
+      key: 'priority', 
+      header: 'Prioridade',
+      render: (row) => (
+        <div className={`priority-tag ${getPriorityClass(row.priority)}`}>
+          {getPriorityLabel(row.priority)}
+        </div>
+      ) 
+    },
+    { 
+      key: 'type', 
+      header: 'Tipo',
+      render: (row) => (
+        <div className={`type-tag type-${row.type}`}>
+          {getTypeLabel(row.type)}
+        </div>
+      ) 
+    },
     { key: 'hours', header: 'Horas' },
     { key: 'actions', header: 'Ações' }
   ];
@@ -605,8 +736,36 @@ const Tasks = () => {
       estimate: task.estimatedHours ? `${task.estimatedHours} horas` : 'Não definida',
       description: task.description,
       status: task.status,
+      priority: task.priority || 'media',
+      type: task.type || 'feature',
       raw: task
     }));
+  };
+  
+  // Obter label para prioridade
+  const getPriorityLabel = (priority) => {
+    const priorityMap = {
+      'baixa': 'Baixa',
+      'media': 'Média',
+      'alta': 'Alta',
+      'critica': 'Crítica'
+    };
+    return priorityMap[priority] || 'Média';
+  };
+  
+  // Obter label para tipo
+  const getTypeLabel = (type) => {
+    const typeMap = {
+      'feature': 'Feature',
+      'bug': 'Bug',
+      'chamado': 'Chamado'
+    };
+    return typeMap[type] || 'Feature';
+  };
+  
+  // Obter classe CSS para prioridade
+  const getPriorityClass = (priority) => {
+    return `priority-${priority}`;
   };
 
   // Renderizar células de ação
@@ -771,7 +930,9 @@ const Tasks = () => {
               description: '',
               backlogId: '',
               userId: '',
-              estimatedHours: ''
+              estimatedHours: '',
+              priority: 'media',
+              type: 'feature'
             });
             setShowForm(true);
           }}
@@ -854,18 +1015,54 @@ const Tasks = () => {
             </div>
           </div>
           
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="estimatedHours">Estimativa de Horas</label>
+              <input
+                type="number"
+                id="estimatedHours"
+                name="estimatedHours"
+                value={formData.estimatedHours}
+                onChange={handleChange}
+                min="0"
+                step="0.5"
+                placeholder="Estimativa em horas"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="priority">Prioridade</label>
+              <select
+                id="priority"
+                name="priority"
+                value={formData.priority || 'media'}
+                onChange={handleChange}
+                required
+              >
+                {priorityOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
           <div className="form-group">
-            <label htmlFor="estimatedHours">Estimativa de Horas</label>
-            <input
-              type="number"
-              id="estimatedHours"
-              name="estimatedHours"
-              value={formData.estimatedHours}
+            <label htmlFor="type">Tipo</label>
+            <select
+              id="type"
+              name="type"
+              value={formData.type || 'feature'}
               onChange={handleChange}
-              min="0"
-              step="0.5"
-              placeholder="Estimativa em horas"
-            />
+              required
+            >
+              {typeOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Campo de seleção de usuário responsável (apenas para administradores) */}
@@ -1245,6 +1442,24 @@ const Tasks = () => {
               { key: 'backlog', header: 'Backlog' },
               { key: 'assignee', header: 'Responsável' },
               { key: 'estimate', header: 'Estimativa' },
+              { 
+                key: 'priority', 
+                header: 'Prioridade',
+                render: (row) => (
+                  <div className={`priority-tag ${getPriorityClass(row.priority)}`}>
+                    {getPriorityLabel(row.priority)}
+                  </div>
+                ) 
+              },
+              { 
+                key: 'type', 
+                header: 'Tipo',
+                render: (row) => (
+                  <div className={`type-tag type-${row.type}`}>
+                    {getTypeLabel(row.type)}
+                  </div>
+                ) 
+              },
               { 
                 key: 'status', 
                 header: 'Status', 

@@ -78,7 +78,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Criar tarefa
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, description, estimatedHours, backlogId, userId } = req.body;
+    const { title, description, estimatedHours, backlogId, userId, priority, type } = req.body;
     
     // Validar entrada
     if (!title || !backlogId) {
@@ -103,12 +103,22 @@ router.post('/', authMiddleware, async (req, res) => {
       assignedUserId = req.user.id;
     }
     
+    // Validar prioridade
+    const validPriorities = ['baixa', 'media', 'alta', 'critica'];
+    const taskPriority = priority && validPriorities.includes(priority) ? priority : 'media';
+    
+    // Validar tipo
+    const validTypes = ['feature', 'bug', 'chamado'];
+    const taskType = type && validTypes.includes(type) ? type : 'feature';
+    
     // Criar tarefa
     const task = await Task.create({
       title,
       description,
       estimatedHours,
       status: 'pending',
+      priority: taskPriority,
+      type: taskType,
       hoursSpent: 0,
       backlogId,
       userId: assignedUserId
@@ -139,7 +149,7 @@ router.post('/', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, status, hoursSpent, estimatedHours, backlogId, userId } = req.body;
+    const { title, description, status, hoursSpent, estimatedHours, backlogId, userId, priority, type } = req.body;
     
     // Buscar tarefa
     const task = await Task.findByPk(id);
@@ -176,6 +186,16 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (description !== undefined) task.description = description;
     if (status && ['pending', 'in_progress', 'completed'].includes(status)) {
       task.status = status;
+    }
+    
+    // Atualizar prioridade
+    if (priority && ['baixa', 'media', 'alta', 'critica'].includes(priority)) {
+      task.priority = priority;
+    }
+    
+    // Atualizar tipo
+    if (type && ['feature', 'bug', 'chamado'].includes(type)) {
+      task.type = type;
     }
     
     // Atualizar horas gastas
@@ -237,10 +257,58 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       return res.status(403).json({ message: 'Você não tem permissão para excluir esta tarefa' });
     }
     
-    // Excluir tarefa
+    // Importar os modelos necessários
+    const { TaskHourHistory, TaskHourAttachment } = require('../models/associations');
+    const FtpManager = require('../utils/ftpManager');
+    
+    // Buscar todos os registros de horas da tarefa
+    const hourRecords = await TaskHourHistory.findAll({
+      where: { taskId: id },
+      include: [{ model: TaskHourAttachment }]
+    });
+    
+    // Para cada registro de horas, excluir seus anexos
+    for (const record of hourRecords) {
+      if (record.TaskHourAttachments && record.TaskHourAttachments.length > 0) {
+        for (const attachment of record.TaskHourAttachments) {
+          try {
+            // Verificar se o arquivo existe no FTP e excluí-lo
+            const filePath = attachment.filePath;
+            try {
+              const fileExists = await FtpManager.fileExists(filePath);
+              if (fileExists) {
+                await FtpManager.deleteFile(filePath);
+                console.log(`Arquivo excluído do FTP: ${filePath}`);
+              } else {
+                console.log(`Arquivo não encontrado no FTP: ${filePath}`);
+              }
+            } catch (ftpError) {
+              console.error(`Erro ao excluir arquivo do FTP ${filePath}:`, ftpError);
+              // Continuar mesmo com erro na exclusão do FTP
+            }
+            
+            // Excluir o anexo do banco de dados
+            await attachment.destroy();
+          } catch (attachmentError) {
+            console.error(`Erro ao excluir anexo ${attachment.id}:`, attachmentError);
+            // Continuar para o próximo anexo mesmo se houver erro
+          }
+        }
+      }
+      
+      // Excluir o registro de horas
+      try {
+        await record.destroy();
+      } catch (recordError) {
+        console.error(`Erro ao excluir registro de horas ${record.id}:`, recordError);
+        // Continuar para o próximo registro mesmo se houver erro
+      }
+    }
+    
+    // Excluir a tarefa após remover todas as dependências
     await task.destroy();
     
-    return res.json({ message: 'Tarefa excluída com sucesso' });
+    return res.json({ message: 'Tarefa e todos os registros relacionados excluídos com sucesso' });
   } catch (error) {
     console.error('Erro ao excluir tarefa:', error);
     return res.status(500).json({ message: 'Erro no servidor' });

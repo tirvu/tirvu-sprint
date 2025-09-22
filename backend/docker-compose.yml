@@ -7,8 +7,7 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=production
-    volumes:
-      - ./storage:/app/storage
+    # Removido volume de armazenamento local, pois todos os arquivos são gerenciados via FTP
     restart: unless-stopped
     depends_on:
       - db

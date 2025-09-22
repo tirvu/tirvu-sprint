@@ -268,70 +268,67 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     // Excluir cada anexo do FTP/local e do banco de dados
     if (attachments.length > 0) {
       // Importar módulos necessários
-      // fs-extra foi substituído por fs nativo
       const path = require('path');
-      const LOCAL_STORAGE_DIR = path.join(__dirname, '../storage');
+      const FtpManager = require('../utils/ftpManager');
       
-      // Remover do cache
-      const NodeCache = require('node-cache');
-      const fileCache = new NodeCache({ stdTTL: 1800, checkperiod: 300 });
+      // Não é mais necessário remover do cache, pois não usamos mais armazenamento local
       
       // Excluir cada anexo
       for (const attachment of attachments) {
-        // Remover do cache
-        const cacheKey = `file_${attachment.id}`;
-        fileCache.del(cacheKey);
         
-        // Verificar tipo de armazenamento
-        if (attachment.storageType === 'local') {
-          // Excluir do armazenamento local
+        // Excluir do FTP
+        try {
+          // Verificar se o arquivo existe no FTP
+          let fileExists = false;
+          let filePath = attachment.filePath;
+          
+          const path = require('path');
           try {
-            const localFilePath = path.join(LOCAL_STORAGE_DIR, attachment.filename);
-            if (fs.existsSync(localFilePath)) {
-              fs.unlinkSync(localFilePath);
-            }
+            fileExists = await FtpManager.fileExists(filePath);
+          } catch (existsError) {
+            console.error(`Erro ao verificar existência do arquivo ${filePath}:`, existsError);
             
-            // Verificar se existe versão em cache
-            const localCachePath = path.join(LOCAL_STORAGE_DIR, `cache_${attachment.filename}`);
-            if (fs.existsSync(localCachePath)) {
-              fs.unlinkSync(localCachePath);
-            }
-          } catch (localError) {
-            console.error(`Erro ao excluir arquivo local ${attachment.filename}:`, localError);
-            // Continuar mesmo se falhar a exclusão local
-          }
-        } else {
-          // Excluir do FTP
-          try {
-            const client = new ftp.Client();
-            await client.access({
-              host: "216.158.231.74",
-              user: "vcarclub",
-              password: "7U@gSNCc",
-              secure: false,
-              connTimeout: 15000,
-              pasvTimeout: 15000,
-              keepalive: 30000
-            });
-            
+            // Tentar caminho alternativo no diretório uploads
+            const fileName = path.basename(filePath);
+            const uploadsPath = `uploads/${fileName}`;
             try {
-              await client.remove(`${attachment.filePath}`);
-            } catch (ftpError) {
-              console.error(`Erro ao excluir arquivo ${attachment.filePath} do FTP:`, ftpError);
-              // Continuar mesmo se falhar a exclusão do FTP
-            } finally {
-              client.close();
+              fileExists = await FtpManager.fileExists(uploadsPath);
+              if (fileExists) {
+                filePath = uploadsPath;
+              }
+            } catch (altErr) {
+              console.error(`Erro ao verificar caminho alternativo ${uploadsPath}:`, altErr);
             }
-            
-            // Verificar se existe versão em cache
-            const localCachePath = path.join(LOCAL_STORAGE_DIR, `cache_${attachment.filename}`);
-            if (fs.existsSync(localCachePath)) {
-              fs.unlinkSync(localCachePath);
+          
+          // Se ainda não encontrou, tentar apenas o nome do arquivo
+          if (!fileExists) {
+            const basePath = path.basename(filePath);
+            try {
+              fileExists = await FtpManager.fileExists(basePath);
+              if (fileExists) {
+                filePath = basePath;
+              }
+            } catch (baseErr) {
+              console.error(`Erro ao verificar caminho base ${basePath}:`, baseErr);
             }
-          } catch (ftpError) {
-            console.error('Erro ao conectar ao FTP:', ftpError);
-            // Continuar mesmo se falhar a conexão FTP
           }
+          }
+          
+          // Se o arquivo existir no FTP, excluí-lo
+          if (fileExists) {
+            try {
+              await FtpManager.deleteFile(filePath);
+              console.log(`Arquivo excluído do FTP: ${filePath}`);
+            } catch (deleteErr) {
+              console.error(`Erro ao excluir arquivo do FTP ${filePath}:`, deleteErr);
+              // Continuar mesmo com erro na exclusão do FTP
+            }
+          } else {
+            console.log(`Arquivo não encontrado no FTP: ${filePath}`);
+          }
+        } catch (ftpError) {
+          console.error('Erro ao processar exclusão via FTP:', ftpError);
+          // Continuar mesmo se falhar a operação FTP
         }
         
         // Excluir do banco de dados

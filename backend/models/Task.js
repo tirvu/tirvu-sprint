@@ -19,6 +19,16 @@ const Task = sequelize.define('Task', {
     type: DataTypes.ENUM('pending', 'in_progress', 'completed'),
     defaultValue: 'pending'
   },
+  priority: {
+    type: DataTypes.ENUM('baixa', 'media', 'alta', 'critica'),
+    defaultValue: 'media',
+    allowNull: false
+  },
+  type: {
+    type: DataTypes.ENUM('feature', 'bug', 'chamado'),
+    defaultValue: 'feature',
+    allowNull: false
+  },
   hoursSpent: {
     type: DataTypes.FLOAT,
     defaultValue: 0
