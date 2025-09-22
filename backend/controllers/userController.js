@@ -1,13 +1,50 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 const { User } = require('../models');
 const { authMiddleware, adminMiddleware } = require('./middlewares');
+
+// Configuração da Z-API
+const ZAPI_INSTANCE_ID = '3AE030534411C0E6CFBB7694201C9E8A';
+const ZAPI_TOKEN = 'C0B1E6F61905F7A95C385AC6';
+const ZAPI_URL = `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`;
+
+// Função para enviar mensagem pelo WhatsApp
+async function sendWhatsAppMessage(phoneNumber, message) {
+  try {
+    // Formatar o número de telefone (remover caracteres não numéricos)
+    const formattedPhone = phoneNumber.replace(/\D/g, '');
+    
+    // Verificar se o número tem o formato correto
+    if (formattedPhone.length < 10) {
+      console.error('Número de telefone inválido:', phoneNumber);
+      return false;
+    }
+    
+    // Adicionar o código do país (55 para Brasil) se não estiver presente
+    const phoneWithCountryCode = formattedPhone.startsWith('55') 
+      ? formattedPhone 
+      : `55${formattedPhone}`;
+    
+    // Enviar mensagem via Z-API
+    const response = await axios.post(ZAPI_URL, {
+      phone: phoneWithCountryCode,
+      message: message
+    });
+    
+    console.log('Mensagem WhatsApp enviada com sucesso:', response.data);
+    return true;
+  } catch (error) {
+    console.error('Erro ao enviar mensagem WhatsApp:', error.response?.data || error.message);
+    return false;
+  }
+}
 
 // Registro de usuário
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, capacity } = req.body;
+    const { name, email, password, capacity, phoneNumber } = req.body;
     
     // Validar entrada
     if (!name || !email || !password) {
@@ -28,14 +65,17 @@ router.post('/register', async (req, res) => {
       email,
       password,
       capacity: capacity || 8.0,
+      phoneNumber,
       role: 'collaborator' // Usuários registrados terão role 'collaborator' por padrão
     });
+
     
     return res.status(201).json({
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
+      phoneNumber: user.phoneNumber,
       active: user.active
     });
   } catch (error) {
@@ -129,7 +169,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Criar usuário (apenas admin)
 router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const { name, email, password, role, capacity } = req.body;
+    const { name, email, password, role, capacity, phoneNumber } = req.body;
     
     // Validar entrada
     if (!name || !email || !password) {
@@ -148,14 +188,28 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
       email,
       password,
       capacity: capacity || 8.0,
+      phoneNumber,
       role: role || 'collaborator'
     });
+    
+    // Enviar mensagem WhatsApp se o número de telefone foi fornecido
+    if (phoneNumber) {
+      const message = `Olá ${name}, bem-vindo(a) ao Tirvu Sprint! Seus dados de acesso são:\n\nEmail: ${email}\nSenha: ${password}\n\nAcesse: http://localhost:3000`;
+      
+      try {
+        await sendWhatsAppMessage(phoneNumber, message);
+      } catch (error) {
+        console.error('Erro ao enviar mensagem WhatsApp:', error);
+        // Não interrompe o fluxo se a mensagem falhar
+      }
+    }
     
     return res.status(201).json({
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
+      phoneNumber: user.phoneNumber,
       active: user.active
     });
   } catch (error) {
@@ -168,7 +222,7 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, password, role, active, capacity } = req.body;
+    const { name, email, password, role, active, capacity, phoneNumber } = req.body;
     
     // Verificar se é admin ou o próprio usuário
     if (req.user.role !== 'admin' && req.user.id !== parseInt(id)) {
@@ -187,6 +241,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (email) user.email = email;
     if (password) user.password = password;
     if (capacity !== undefined) user.capacity = capacity;
+    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
     
     // Apenas admin pode alterar role e status active
     if (req.user.role === 'admin') {
@@ -202,7 +257,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
       email: user.email,
       role: user.role,
       active: user.active,
-      capacity: user.capacity
+      capacity: user.capacity,
+      phoneNumber: user.phoneNumber
     });
   } catch (error) {
     console.error('Erro ao atualizar usuário:', error);

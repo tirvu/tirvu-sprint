@@ -34,6 +34,11 @@ const User = sequelize.define('User', {
     defaultValue: 8.0,
     comment: 'Horas de trabalho diárias do usuário'
   },
+  phoneNumber: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Número de celular do usuário'
+  },
   active: {
     type: DataTypes.BOOLEAN,
     defaultValue: true

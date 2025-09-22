@@ -21,7 +21,8 @@ const Users = () => {
     email: '',
     password: '',
     role: 'collaborator',
-    capacity: 8
+    capacity: 8,
+    phoneNumber: ''
   });
   const [editingUserId, setEditingUserId] = useState(null);
 
@@ -52,6 +53,24 @@ const Users = () => {
   // Manipular mudanças no formulário
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Aplicar máscara para o campo de telefone
+    if (name === 'phoneNumber') {
+      // Remove todos os caracteres não numéricos
+      const numericValue = value.replace(/\D/g, '');
+      
+      // Aplica a máscara (00) 00000-0000
+      let maskedValue = '';
+      if (numericValue.length <= 11) {
+        if (numericValue.length > 0) maskedValue += `(${numericValue.substring(0, 2)}`;
+        if (numericValue.length > 2) maskedValue += `) ${numericValue.substring(2, 7)}`;
+        if (numericValue.length > 7) maskedValue += `-${numericValue.substring(7, 11)}`;
+        
+        setFormData(prev => ({ ...prev, [name]: maskedValue }));
+        return;
+      }
+    }
+    
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -62,7 +81,8 @@ const Users = () => {
       email: user.email,
       password: '',
       role: user.role,
-      capacity: user.capacity || 8
+      capacity: user.capacity || 8,
+      phoneNumber: user.phoneNumber || ''
     });
     setEditingUserId(user.id);
     setShowEditModal(true);
@@ -74,7 +94,8 @@ const Users = () => {
       name: '',
       email: '',
       password: '',
-      role: 'collaborator'
+      role: 'collaborator',
+      phoneNumber: ''
     });
     setShowCreateModal(true);
   };
@@ -92,7 +113,8 @@ const Users = () => {
         name: '',
         email: '',
         password: '',
-        role: 'collaborator'
+        role: 'collaborator',
+        phoneNumber: ''
       });
       setLoading(false);
     } catch (err) {
@@ -122,7 +144,8 @@ const Users = () => {
         name: '',
         email: '',
         password: '',
-        role: 'collaborator'
+        role: 'collaborator',
+        phoneNumber: ''
       });
       setLoading(false);
     } catch (err) {
@@ -211,6 +234,14 @@ const Users = () => {
                   key: 'email',
                   header: 'Email',
                   sortable: true
+                },
+                {
+                  key: 'phoneNumber',
+                  header: 'Celular',
+                  sortable: true,
+                  render: (user) => (
+                    <span>{user.phoneNumber || '-'}</span>
+                  )
                 },
                 {
                   key: 'role',
@@ -323,6 +354,18 @@ const Users = () => {
             />
           </div>
 
+          <div className="form-group">
+            <label htmlFor="phoneNumber">Número de Celular</label>
+            <input
+              type="text"
+              id="phoneNumber"
+              name="phoneNumber"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              placeholder="(00) 00000-0000"
+            />
+          </div>
+
           <div className="form-actions">
             <button type="submit" className="btn-submit" disabled={loading}>
               {loading ? 'Salvando...' : 'Salvar Usuário'}
@@ -389,6 +432,18 @@ const Users = () => {
               max="24"
               step="0.5"
               required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="edit-phoneNumber">Número de Celular</label>
+            <input
+              type="text"
+              id="edit-phoneNumber"
+              name="phoneNumber"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              placeholder="(00) 00000-0000"
             />
           </div>
 
