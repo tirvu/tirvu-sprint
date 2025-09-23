@@ -50,6 +50,208 @@ const priorityStyles = `
     border-radius: 4px;
     font-size: 0.8rem;
     font-weight: bold;
+  }
+  
+  /* Estilos para o modal de detalhes da tarefa */
+  .task-details {
+    background-color: #ffffff;
+    border-radius: 12px;
+    max-width: 100%;
+  }
+  
+  .task-details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eaeaea;
+    position: relative;
+  }
+  
+  .task-details-header h2 {
+    margin: 0;
+    font-size: 1.6rem;
+    color: #2c3e50;
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+  }
+  
+  .task-details-header .task-icon {
+    margin-right: 12px;
+    color: #5d6d7e;
+    font-size: 1.2rem;
+  }
+  
+  .task-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+  }
+  
+  .info-card {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .info-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+  }
+  
+  .info-card-header {
+    background: linear-gradient(145deg, #f0f0f0, #e0e0e0);
+    color: #333;
+    padding: 12px 18px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    letter-spacing: 0.5px;
+  }
+  
+  .info-card-header svg {
+    margin-right: 10px;
+    font-size: 1.1rem;
+  }
+  
+  .info-card-content {
+    padding: 18px;
+  }
+  
+  .info-row {
+    display: flex;
+    margin-bottom: 14px;
+    align-items: center;
+    transition: transform 0.2s ease;
+  }
+  
+  .info-row:hover {
+    transform: translateX(5px);
+  }
+  
+  .info-row:last-child {
+    margin-bottom: 0;
+  }
+  
+  .info-label {
+    font-weight: 600;
+    width: 140px;
+    color: #5d6d7e;
+    display: flex;
+    align-items: center;
+  }
+  
+  .info-label svg {
+    margin-right: 8px;
+    color: #5d6d7e;
+  }
+  
+  .info-value {
+    flex: 1;
+    color: #2c3e50;
+    font-weight: 500;
+  }
+  
+  .task-description-card {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    overflow: hidden;
+    margin-bottom: 25px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .task-description-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+  }
+  
+
+  
+  @media (max-width: 768px) {
+    .task-details-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .task-details-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .task-details-header .task-status {
+      margin-top: 10px;
+    }
+    
+    .info-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .info-label {
+      width: 100%;
+      margin-bottom: 5px;
+    }
+  }
+  
+  .description-content {
+    padding: 15px;
+    min-height: 100px;
+  }
+  
+  .description-text {
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+  
+  .no-description {
+    color: #999;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+  }
+  
+  .no-description svg {
+    margin-right: 5px;
+  }
+  
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+  
+  .btn-close {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    transition: background-color 0.3s;
+  }
+  
+  .btn-close:hover {
+    background-color: #d32f2f;
+  }
+  
+  .btn-close svg {
+    margin-right: 5px;
+  }
+  
+  .type-tag {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
     text-align: center;
   }
   
@@ -100,8 +302,10 @@ const Tasks = () => {
   const [showForm, setShowForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showHoursForm, setShowHoursForm] = useState(false);
+  const [showTaskDetails, setShowTaskDetails] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState(null);
   const [taskToRegisterHours, setTaskToRegisterHours] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -461,6 +665,13 @@ const Tasks = () => {
       toast.dismiss('hoursSaveProgress');
       toast.success('Registro de horas salvo com sucesso!');
       
+      // Atualizar o histórico de horas para a tarefa atual
+      if (taskToRegisterHours) {
+        const updatedHistory = await fetchTaskHourHistory(taskToRegisterHours.id);
+        console.log('Histórico atualizado após registro:', updatedHistory);
+        setHourHistory(updatedHistory);
+      }
+      
       // Atualizar a lista de tarefas para refletir as novas horas
       const updatedTasks = await axios.get(API_ENDPOINTS.TASKS);
       
@@ -472,15 +683,13 @@ const Tasks = () => {
         setTasks(updatedTasks.data);
       }
       
-      // Limpar formulário e fechar modal
+      // Limpar formulário e manter o modal aberto para mostrar o histórico atualizado
       setHoursFormData({
         description: '',
         startTime: '',
         endTime: '',
         attachments: []
       });
-      setShowHoursForm(false);
-      setTaskToRegisterHours(null);
       setLoading(false);
     } catch (err) {
       console.error('Erro ao registrar horas:', err);
@@ -492,7 +701,17 @@ const Tasks = () => {
   // Buscar histórico de horas de uma tarefa
   const fetchTaskHourHistory = async (taskId) => {
     try {
+      // Usando o endpoint correto conforme definido no backend
       const response = await axios.get(`${API_ENDPOINTS.HOUR_HISTORY}/task/${taskId}`);
+      console.log('Histórico de horas recebido:', response.data);
+      // Verificar se os dados estão vindo corretamente
+      if (response.data && Array.isArray(response.data)) {
+        console.log('Número de registros:', response.data.length);
+        response.data.forEach((record, index) => {
+          console.log(`Registro ${index}:`, record);
+          console.log(`Horas do registro ${index}:`, record.hours);
+        });
+      }
       return response.data;
     } catch (err) {
       console.error('Erro ao buscar histórico de horas:', err);
@@ -869,7 +1088,25 @@ const Tasks = () => {
     setTaskToRegisterHours(task);
     // Buscar histórico de horas da tarefa
     const history = await fetchTaskHourHistory(task.id);
-    setHourHistory(history);
+    console.log('Histórico obtido para o modal:', history);
+    
+    // Garantir que o histórico seja um array válido
+    if (Array.isArray(history)) {
+      setHourHistory(history);
+    } else {
+      console.error('Histórico de horas não é um array:', history);
+      setHourHistory([]);
+    }
+    
+    // Resetar formulário de horas
+    setHoursFormData({
+      description: '',
+      hours: '',
+      startTime: '',
+      endTime: '',
+      attachments: []
+    });
+    
     setShowHoursForm(true);
   };
 
@@ -887,6 +1124,17 @@ const Tasks = () => {
         disabled={!isResponsible}
       >
         <FontAwesomeIcon icon="play" /> Iniciar
+      </button>
+      <button 
+        className="action-btn view"
+        title="Detalhar"
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedTask(row.raw);
+          setShowTaskDetails(true);
+        }}
+      >
+        <FontAwesomeIcon icon="eye" />
       </button>
       <button 
         className="action-btn register-hours"
@@ -934,6 +1182,17 @@ const Tasks = () => {
         <FontAwesomeIcon icon="check" /> Concluir
       </button>
       <button 
+        className="action-btn view"
+        title="Detalhar"
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedTask(row.raw);
+          setShowTaskDetails(true);
+        }}
+      >
+        <FontAwesomeIcon icon="eye" />
+      </button>
+      <button 
         className="action-btn register-hours"
         title="Registrar Horas"
         onClick={(e) => {
@@ -971,6 +1230,17 @@ const Tasks = () => {
   
   const renderCompletedActions = (row) => (
     <div className="table-actions">
+      <button 
+        className="action-btn view"
+        title="Detalhar"
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedTask(row.raw);
+          setShowTaskDetails(true);
+        }}
+      >
+        <FontAwesomeIcon icon="eye" />
+      </button>
       <button 
         className="action-btn register-hours"
         title="Registrar Horas"
@@ -1337,7 +1607,23 @@ const Tasks = () => {
                 <FontAwesomeIcon icon="fa-solid fa-clock" style={{ marginRight: '5px' }} />
                 Horas Registradas
               </span>
-              <span className="hours-spent">{hourHistory.reduce((total, record) => total + parseFloat(record.hours), 0).toFixed(1)}h</span>
+              <span className="hours-spent">
+                {(() => {
+                  console.log('hourHistory para cálculo:', hourHistory);
+                  if (!hourHistory || hourHistory.length === 0) {
+                    console.log('Nenhum registro de horas encontrado');
+                    return '0.0';
+                  }
+                  const total = hourHistory.reduce((total, record) => {
+                    // Garantir que o valor de horas seja um número válido
+                    const hours = record && record.hours ? parseFloat(record.hours) : 0;
+                    console.log('Registro:', record, 'Horas:', record.hours, 'Parsed:', hours);
+                    return total + hours;
+                  }, 0);
+                  console.log('Total calculado:', total);
+                  return total.toFixed(1);
+                })()}h
+              </span>
             </div>
           </div>
           
@@ -1631,6 +1917,94 @@ const Tasks = () => {
             </div>
           )}
         </div>
+      </Modal>
+
+      {/* Modal de detalhes da tarefa */}
+      <Modal isOpen={showTaskDetails} onClose={() => setShowTaskDetails(false)} title="Detalhes da Tarefa">
+        {selectedTask && (
+          <div className="task-details">
+            <div className="task-details-header">
+              <h2>
+                <FontAwesomeIcon icon="tasks" className="task-icon" />
+                {selectedTask.title}
+              </h2>
+              <div className="task-status">
+                <div className={`status-tag status-${selectedTask.status}`}>
+                  <FontAwesomeIcon icon={selectedTask.status === 'pending' ? 'clock' : selectedTask.status === 'in_progress' ? 'spinner' : 'check-circle'} />
+                  {getStatusLabel(selectedTask.status)}
+                </div>
+              </div>
+            </div>
+            
+            <div className="task-details-grid">
+              <div className="info-card">
+                <div className="info-card-header">
+                  <FontAwesomeIcon icon="info-circle" />
+                  <span>Informações Básicas</span>
+                </div>
+                <div className="info-card-content">
+                  <div className="info-row">
+                    <div className="info-label"><FontAwesomeIcon icon="list" /> Backlog:</div>
+                    <div className="info-value">{backlogs.find(b => b.id === selectedTask.backlogId)?.title || 'Não definido'}</div>
+                  </div>
+                  
+                  <div className="info-row">
+                    <div className="info-label"><FontAwesomeIcon icon="user" /> Responsável:</div>
+                    <div className="info-value">{users.find(u => u.id === selectedTask.userId)?.name || 'Não atribuído'}</div>
+                  </div>
+                  
+                  <div className="info-row">
+                    <div className="info-label"><FontAwesomeIcon icon="clock" /> Estimativa:</div>
+                    <div className="info-value">{selectedTask.estimatedHours} horas</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="info-card">
+                <div className="info-card-header">
+                  <FontAwesomeIcon icon="tag" />
+                  <span>Classificação</span>
+                </div>
+                <div className="info-card-content">
+                  <div className="info-row">
+                    <div className="info-label"><FontAwesomeIcon icon="flag" /> Prioridade:</div>
+                    <div className="info-value">
+                      <div className={`priority-tag ${getPriorityClass(selectedTask.priority)}`}>
+                        {getPriorityLabel(selectedTask.priority)}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="info-row">
+                    <div className="info-label"><FontAwesomeIcon icon="code-branch" /> Tipo:</div>
+                    <div className="info-value">
+                      <div className={`type-tag type-${selectedTask.type}`}>
+                        {getTypeLabel(selectedTask.type)}
+                      </div>
+                    </div>
+                  </div>
+                
+                </div>
+              </div>
+            </div>
+            
+            <div className="task-description-card">
+              <div className="info-card-header">
+                <FontAwesomeIcon icon="file-alt" />
+                <span>Descrição</span>
+              </div>
+              <div className="description-content">
+                {selectedTask.description ? (
+                  <div className="description-text">{selectedTask.description}</div>
+                ) : (
+                  <div className="no-description"><FontAwesomeIcon icon="exclamation-circle" /> Sem descrição</div>
+                )}
+              </div>
+            </div>
+            
+
+          </div>
+        )}
       </Modal>
 
       <div className="tasks-unified">
