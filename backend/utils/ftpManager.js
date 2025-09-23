@@ -293,12 +293,20 @@ class FtpManager {
           for (const pathToTry of pathsToTry) {
             try {
               console.log(`Tentando baixar arquivo de: ${pathToTry}`);
+              
+              // Verificar se o stream já foi finalizado antes de tentar baixar
+              if (passThrough.writableEnded || passThrough.destroyed) {
+                console.log('Stream já finalizado, pulando tentativa de download');
+                continue;
+              }
+              
               await client.downloadTo(passThrough, pathToTry);
               console.log(`Download bem-sucedido de: ${pathToTry}`);
               downloadSuccess = true;
               
               // Finalizar o stream após download bem-sucedido
-              if (!passThrough.writableEnded) {
+              if (!passThrough.writableEnded && !passThrough.destroyed) {
+                console.log('Finalizando stream após download bem-sucedido');
                 passThrough.end();
               }
               

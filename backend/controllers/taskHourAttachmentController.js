@@ -10,6 +10,7 @@ const os = require('os');
 const stream = require('stream');
 const crypto = require('crypto');
 const FtpManager = require('../utils/ftpManager');
+const { promisify } = require('util');
 
 // Sistema de cache para arquivos com duração otimizada
 const CACHE_DURATION = 60 * 60 * 1000; // 60 minutos em milissegundos
@@ -409,102 +410,147 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Rota para acessar um arquivo (imagem, documento, PDF) - Otimizada para acesso via FTP
+// Rota para acessar um arquivo (imagem, documento, PDF) - Versão simplificada
 router.get('/file/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    console.log(`[ARQUIVO] Solicitação de arquivo com ID: ${id}`);
     
     // Buscar o anexo
     const attachment = await TaskHourAttachment.findByPk(id);
     if (!attachment) {
+      console.log(`[ARQUIVO] Anexo não encontrado com ID: ${id}`);
       return res.status(404).json({ message: 'Anexo não encontrado' });
     }
     
-    // Definir headers comuns
-    res.setHeader('Content-Type', attachment.fileType);
-    res.setHeader('Content-Disposition', `inline; filename="${attachment.originalFilename}"`);
-    res.setHeader('Cache-Control', 'no-store'); // Desabilitar cache
+    // Extrair informações do arquivo
+    const fileName = attachment.originalFilename || path.basename(attachment.filePath);
+    const fileExtension = fileName.split('.').pop().toLowerCase();
     
-    // Verificar se o arquivo existe no FTP e encontrar o caminho correto
-    let filePath = attachment.filePath;
+    console.log(`[ARQUIVO] Processando: ${fileName} (${fileExtension})`);
     
-    // Tentar diferentes caminhos para o arquivo
+    // Definir o tipo de conteúdo baseado na extensão
+    const mimeTypes = {
+      'png': 'image/png',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'gif': 'image/gif',
+      'bmp': 'image/bmp',
+      'webp': 'image/webp',
+      'svg': 'image/svg+xml',
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'ppt': 'application/vnd.ms-powerpoint',
+      'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'txt': 'text/plain',
+      'csv': 'text/csv',
+      'html': 'text/html',
+      'css': 'text/css',
+      'js': 'application/javascript',
+      'json': 'application/json',
+      'xml': 'application/xml',
+      'zip': 'application/zip',
+      'rar': 'application/x-rar-compressed',
+      '7z': 'application/x-7z-compressed'
+    };
+    
+    const contentType = mimeTypes[fileExtension] || 'application/octet-stream';
+    
+    // Determinar se deve ser exibido inline ou como download
+    const isImage = contentType.startsWith('image/');
+    const isPdf = contentType === 'application/pdf';
+    const disposition = (isImage || isPdf) ? 'inline' : 'attachment';
+    
+    console.log(`[ARQUIVO] Tipo: ${contentType}, Disposição: ${disposition}`);
+    
+    // Definir headers para a resposta
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(fileName)}"`);
+    res.setHeader('Cache-Control', 'max-age=86400'); // Cache por 24 horas
+    res.setHeader('X-Content-Type-Options', 'nosniff'); // Evitar MIME-sniffing
+    
+    // Lista de possíveis caminhos para o arquivo no FTP
     const possiblePaths = [
-      filePath,
-      `upload-tirvu-sprint/${path.basename(filePath)}`,
-      path.basename(filePath)
+      attachment.filePath,
+      attachment.filePath.startsWith('/') ? attachment.filePath.substring(1) : attachment.filePath,
+      `upload-tirvu-sprint/${path.basename(attachment.filePath)}`,
+      path.basename(attachment.filePath)
     ];
     
-    let foundPath = null;
+    console.log(`[ARQUIVO] Tentando caminhos: ${JSON.stringify(possiblePaths)}`);
     
-    // Tentar cada caminho possível
-    for (const testPath of possiblePaths) {
-      console.log(`Tentando encontrar arquivo em: ${testPath}`);
-      const exists = await FtpManager.fileExists(testPath);
-      if (exists) {
-        foundPath = testPath;
-        console.log(`Arquivo encontrado em: ${foundPath}`);
+    // Configurar eventos para quando o cliente fechar a conexão
+    let downloadCancelled = false;
+    res.on('close', () => {
+      console.log('[ARQUIVO] Conexão fechada pelo cliente');
+      downloadCancelled = true;
+    });
+    
+    // Tentar baixar o arquivo diretamente do FTP para o cliente
+    let downloadSuccess = false;
+    let lastError = null;
+    
+    for (const ftpPath of possiblePaths) {
+      if (downloadCancelled) break;
+      
+      try {
+        console.log(`[ARQUIVO] Tentando baixar de: ${ftpPath}`);
+        
+        const { stream, cleanup } = await FtpManager.downloadFile(ftpPath);
+        console.log(`[ARQUIVO] Stream de download iniciado para: ${ftpPath}`);
+        
+        // Configurar eventos do stream
+        stream.on('error', (err) => {
+          console.error(`[ARQUIVO] Erro no stream: ${err.message}`);
+          if (!res.headersSent) {
+            res.status(500).json({ message: 'Erro ao ler arquivo', details: err.message });
+          } else if (!res.writableEnded) {
+            res.end();
+          }
+          cleanup();
+        });
+        
+        stream.on('end', () => {
+          console.log(`[ARQUIVO] Stream finalizado com sucesso: ${ftpPath}`);
+          cleanup();
+        });
+        
+        // Atualizar o caminho no banco de dados se necessário
+        if (ftpPath !== attachment.filePath) {
+          console.log(`[ARQUIVO] Atualizando caminho: ${attachment.filePath} -> ${ftpPath}`);
+          await attachment.update({ filePath: ftpPath });
+        }
+        
+        // Pipe do stream diretamente para a resposta
+        stream.pipe(res);
+        downloadSuccess = true;
         break;
+      } catch (err) {
+        console.warn(`[ARQUIVO] Erro ao baixar de ${ftpPath}: ${err.message}`);
+        lastError = err;
       }
     }
     
-    if (!foundPath) {
-      console.error(`Arquivo não encontrado no FTP: ${filePath}`);
-      return res.status(404).json({ message: 'Arquivo não encontrado no servidor' });
-    }
-    
-    // Se o caminho encontrado for diferente do armazenado, atualizar no banco
-    if (foundPath !== filePath) {
-      console.log(`Atualizando caminho no banco de dados: ${filePath} -> ${foundPath}`);
-      await attachment.update({ filePath: foundPath });
-      filePath = foundPath;
-    }
-    
-    // Buscar o arquivo diretamente do FTP
-    try {
-      console.log(`Buscando arquivo do FTP: ${filePath}`);
-      const result = await FtpManager.downloadFile(filePath);
-      
-      // Pipe do stream diretamente para a resposta
-      result.stream.pipe(res);
-      
-      // Configurar limpeza quando a resposta terminar
-      res.on('close', () => {
-        if (result.cleanup && typeof result.cleanup === 'function') {
-          result.cleanup();
-        }
-      });
-      
-      // Tratar erros no stream
-      result.stream.on('error', (err) => {
-        console.error(`Erro no stream FTP: ${err.message}`);
-        
-        if (!res.headersSent) {
-          res.status(500).json({ 
-            message: 'Erro ao baixar arquivo do FTP', 
-            details: err.message
-          });
-        } else {
-          res.end();
-        }
-        
-        // Garantir que a limpeza seja feita em caso de erro
-        if (result.cleanup && typeof result.cleanup === 'function') {
-          result.cleanup();
-        }
-      });
-    } catch (ftpErr) {
-      console.error(`Erro ao baixar arquivo do FTP: ${ftpErr.message}`);
-      // Não há variável result definida neste escopo, então não podemos chamar cleanup
-      return res.status(500).json({ 
-        message: 'Erro ao baixar arquivo do FTP', 
-        details: ftpErr.message
+    // Se não conseguiu baixar o arquivo
+    if (!downloadSuccess && !downloadCancelled && !res.headersSent) {
+      console.error('[ARQUIVO] Não foi possível baixar o arquivo de nenhum caminho');
+      return res.status(404).json({ 
+        message: 'Arquivo não encontrado no servidor', 
+        details: lastError ? lastError.message : 'Todos os caminhos falharam'
       });
     }
   } catch (error) {
-    console.error('Erro ao acessar arquivo:', error);
+    console.error('[ARQUIVO] Erro ao processar arquivo:', error);
+    
+    // Enviar resposta de erro
     if (!res.headersSent) {
-      res.status(500).json({ message: 'Erro ao acessar arquivo', details: error.message });
+      res.status(500).json({ 
+        message: 'Erro ao processar arquivo', 
+        details: error.message 
+      });
     }
   }
 });
