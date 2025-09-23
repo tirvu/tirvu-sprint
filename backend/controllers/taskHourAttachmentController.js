@@ -427,7 +427,26 @@ router.get('/file/:id', async (req, res) => {
     
     // Verificar se o arquivo existe no FTP e encontrar o caminho correto
     let filePath = attachment.filePath;
-    const foundPath = await findFileInFTP(filePath);
+    
+    // Tentar diferentes caminhos para o arquivo
+    const possiblePaths = [
+      filePath,
+      `upload-tirvu-sprint/${path.basename(filePath)}`,
+      path.basename(filePath)
+    ];
+    
+    let foundPath = null;
+    
+    // Tentar cada caminho possível
+    for (const testPath of possiblePaths) {
+      console.log(`Tentando encontrar arquivo em: ${testPath}`);
+      const exists = await FtpManager.fileExists(testPath);
+      if (exists) {
+        foundPath = testPath;
+        console.log(`Arquivo encontrado em: ${foundPath}`);
+        break;
+      }
+    }
     
     if (!foundPath) {
       console.error(`Arquivo não encontrado no FTP: ${filePath}`);
@@ -444,13 +463,20 @@ router.get('/file/:id', async (req, res) => {
     // Buscar o arquivo diretamente do FTP
     try {
       console.log(`Buscando arquivo do FTP: ${filePath}`);
-      const stream = await FtpManager.downloadFile(filePath);
+      const result = await FtpManager.downloadFile(filePath);
       
       // Pipe do stream diretamente para a resposta
-      stream.pipe(res);
+      result.stream.pipe(res);
+      
+      // Configurar limpeza quando a resposta terminar
+      res.on('close', () => {
+        if (result.cleanup && typeof result.cleanup === 'function') {
+          result.cleanup();
+        }
+      });
       
       // Tratar erros no stream
-      stream.on('error', (err) => {
+      result.stream.on('error', (err) => {
         console.error(`Erro no stream FTP: ${err.message}`);
         
         if (!res.headersSent) {
@@ -461,9 +487,15 @@ router.get('/file/:id', async (req, res) => {
         } else {
           res.end();
         }
+        
+        // Garantir que a limpeza seja feita em caso de erro
+        if (result.cleanup && typeof result.cleanup === 'function') {
+          result.cleanup();
+        }
       });
     } catch (ftpErr) {
       console.error(`Erro ao baixar arquivo do FTP: ${ftpErr.message}`);
+      // Não há variável result definida neste escopo, então não podemos chamar cleanup
       return res.status(500).json({ 
         message: 'Erro ao baixar arquivo do FTP', 
         details: ftpErr.message

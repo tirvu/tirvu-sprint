@@ -250,6 +250,9 @@ class FtpManager {
       // Obter uma conexão do pool
       client = await ftpPool.getConnection();
       
+      // Normalizar o caminho (remover barra inicial se existir)
+      const normalizedPath = remotePath.startsWith('/') ? remotePath.substring(1) : remotePath;
+      
       // Função para limpar recursos
       const cleanup = () => {
         connectionClosed = true;
@@ -270,11 +273,52 @@ class FtpManager {
             throw new Error('Download cancelado pelo usuário');
           }
           
-          // Download do arquivo para o stream
-          await client.downloadTo(passThrough, remotePath);
+          // Extrair o nome do arquivo do caminho
+          const fileName = normalizedPath.includes('/') ? 
+            normalizedPath.substring(normalizedPath.lastIndexOf('/') + 1) : 
+            normalizedPath;
           
-          // Finalizar o stream
-          passThrough.end();
+          // Lista de caminhos possíveis para tentar
+          const pathsToTry = [
+            remotePath,
+            normalizedPath,
+            `upload-tirvu-sprint/${fileName}`,
+            fileName
+          ];
+          
+          let downloadSuccess = false;
+          let lastError = null;
+          
+          // Tentar cada caminho possível
+          for (const pathToTry of pathsToTry) {
+            try {
+              console.log(`Tentando baixar arquivo de: ${pathToTry}`);
+              await client.downloadTo(passThrough, pathToTry);
+              console.log(`Download bem-sucedido de: ${pathToTry}`);
+              downloadSuccess = true;
+              
+              // Finalizar o stream após download bem-sucedido
+              if (!passThrough.writableEnded) {
+                passThrough.end();
+              }
+              
+              break;
+            } catch (downloadError) {
+              console.warn(`Falha ao baixar de ${pathToTry}: ${downloadError.message}`);
+              lastError = downloadError;
+              
+              // Se o erro for "write after end", significa que o stream já foi finalizado
+              if (downloadError.message.includes('write after end')) {
+                console.log('Stream já finalizado, considerando download como bem-sucedido');
+                downloadSuccess = true;
+                break;
+              }
+            }
+          }
+          
+          if (!downloadSuccess) {
+            throw lastError || new Error(`Não foi possível baixar o arquivo de nenhum caminho tentado`);
+          }
           
           return true;
         } catch (error) {
@@ -448,18 +492,28 @@ class FtpManager {
         // Se não conseguir acessar o diretório ou listar arquivos, o arquivo não existe
         console.warn(`Erro ao verificar arquivo ${normalizedPath}: ${error.message}`);
         
-        // Se o diretório for a raiz, tentar verificar diretamente na raiz
-        if (directory !== '/' && !directory.includes('/')) {
-          try {
-            await client.cd('/');
-            const rootFiles = await client.list();
-            const fileExistsInRoot = rootFiles.some(file => file.name === fileName);
-            console.log(`Arquivo ${fileName} ${fileExistsInRoot ? 'encontrado' : 'não encontrado'} no diretório raiz`);
-            return fileExistsInRoot;
-          } catch (rootError) {
-            console.warn(`Erro ao verificar arquivo na raiz: ${rootError.message}`);
-            return false;
-          }
+        // Se o diretório não for encontrado, tentar verificar em diretórios alternativos
+        // Primeiro na raiz
+        try {
+          await client.cd('/');
+          const rootFiles = await client.list();
+          const fileExistsInRoot = rootFiles.some(file => file.name === fileName);
+          console.log(`Arquivo ${fileName} ${fileExistsInRoot ? 'encontrado' : 'não encontrado'} no diretório raiz`);
+          if (fileExistsInRoot) return true;
+        } catch (rootError) {
+          console.warn(`Erro ao verificar arquivo na raiz: ${rootError.message}`);
+        }
+        
+        // Depois no diretório upload-tirvu-sprint
+        try {
+          await client.cd('/upload-tirvu-sprint');
+          const uploadDirFiles = await client.list();
+          const fileExistsInUploadDir = uploadDirFiles.some(file => file.name === fileName);
+          console.log(`Arquivo ${fileName} ${fileExistsInUploadDir ? 'encontrado' : 'não encontrado'} no diretório upload-tirvu-sprint`);
+          return fileExistsInUploadDir;
+        } catch (uploadDirError) {
+          console.warn(`Erro ao verificar arquivo em upload-tirvu-sprint: ${uploadDirError.message}`);
+          return false;
         }
         
         return false;
