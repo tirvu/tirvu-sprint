@@ -334,6 +334,15 @@ const Tasks = () => {
   // Atualizar status da tarefa
   const updateTaskStatus = async (taskId, newStatus) => {
     try {
+      // Verificar se o usuário é o responsável pela tarefa quando estiver iniciando
+      if (newStatus === 'in_progress') {
+        const taskToUpdate = tasks.find(task => task.id === taskId);
+        if (taskToUpdate && String(taskToUpdate.userId) !== String(user.id)) {
+          toast.error('Você não pode iniciar uma tarefa que não é de sua autoria!');
+          return;
+        }
+      }
+      
       const response = await axios.put(`${API_ENDPOINTS.TASKS}/${taskId}`, { status: newStatus });
       
       // Atualizar estado local
@@ -840,7 +849,7 @@ const Tasks = () => {
     <div className="table-actions">
       <button 
         className={`btn-start-task ${!isResponsible ? 'disabled' : ''}`}
-        onClick={() => isResponsible && updateTaskStatus(row.id, 'in_progress')}
+        onClick={() => updateTaskStatus(row.id, 'in_progress')}
         title={startButtonTitle}
         disabled={!isResponsible}
       >
@@ -980,6 +989,7 @@ const Tasks = () => {
   };
 
   return (
+    <>
     <div className="tasks-container">
       <div className="tasks-header">
         <h1>Tarefas</h1>
@@ -1618,6 +1628,8 @@ const Tasks = () => {
         </div>
       </div>
     </div>
+    <ToastContainer position="top-right" autoClose={5000} />
+    </>
   );
 };
 
