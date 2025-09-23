@@ -1676,7 +1676,7 @@ const Tasks = () => {
                   render: (row) => row.status === 'completed' ? (
                     <div className="hours-cell">
                       <FontAwesomeIcon icon="fa-solid fa-clock" />&nbsp;
-                      <span>{row.hours} horas</span>
+                      <span>{row.hours.toFixed(2)} horas</span>
                     </div>
                   ) : null
                 }
