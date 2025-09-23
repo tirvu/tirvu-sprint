@@ -77,6 +77,7 @@ const ToastContainer = () => {
   const error = (message, options) => addToast(message, 'error', options);
   const info = (message, options) => addToast(message, 'info', options);
   const warning = (message, options) => addToast(message, 'warning', options);
+  const loading = (message, options) => addToast(message, 'loading', options);
 
   // Expor as funções para uso global
   React.useEffect(() => {
@@ -85,6 +86,7 @@ const ToastContainer = () => {
       error,
       info,
       warning,
+      loading,
       dismiss
     };
 

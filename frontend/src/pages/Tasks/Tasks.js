@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { API_ENDPOINTS, API_URL } from '../../helpers/Constants';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../../components/Modal/Modal';
 import Table from '../../components/Table/Table';
+import FileUpload from '../../components/FileUpload/FileUpload';
 // Usando o toast global definido em nosso componente personalizado
 import './Tasks.css';
 import './attachment-styles.css';
@@ -329,6 +330,7 @@ const Tasks = () => {
   const [showAttachmentsModal, setShowAttachmentsModal] = useState(false);
   const [selectedHourRecord, setSelectedHourRecord] = useState(null);
   const [previewAttachment, setPreviewAttachment] = useState(null);
+  const fileUploadRef = useRef(null);
 
   // Função para buscar tarefas
   const fetchTasks = async () => {
@@ -475,9 +477,12 @@ const Tasks = () => {
         taskData.estimatedHours = parseFloat(taskData.estimatedHours);
       }
       
+      let taskId;
+      
       if (formData.id) {
         // Atualizar tarefa existente
         const response = await axios.put(`${API_ENDPOINTS.TASKS}/${formData.id}`, taskData);
+        taskId = formData.id;
         
         // Se o usuário for collaborator, verificar se a tarefa atualizada pertence a ele
         if (user.role === 'collaborator') {
@@ -494,9 +499,35 @@ const Tasks = () => {
       } else {
         // Criar nova tarefa
         const response = await axios.post(API_ENDPOINTS.TASKS, taskData);
+        taskId = response.data.id;
         
         // Recarregar todas as tarefas para garantir que a tabela seja atualizada corretamente
         await fetchTasks();
+      }
+      
+      // Fazer upload dos anexos se houver arquivos selecionados
+      if (fileUploadRef.current && taskId) {
+        try {
+          // Atualizar o componente FileUpload com o taskId correto antes de fazer upload
+          // Isso é necessário para novas tarefas onde o ID só é conhecido após a criação
+          setFormData(prev => ({ ...prev, id: taskId }));
+          
+          // Forçar a atualização do componente FileUpload com o novo taskId
+          // Definir diretamente o taskId no ref para garantir que esteja disponível imediatamente
+          fileUploadRef.current.taskId = taskId;
+          console.log('Definindo taskId no fileUploadRef:', taskId);
+          
+          // Aguardar um momento para que o componente FileUpload seja atualizado com o novo taskId
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Agora fazer o upload dos anexos
+          console.log('Chamando uploadFiles para a tarefa ID:', taskId);
+          const uploadResult = await fileUploadRef.current.uploadFiles();
+          console.log('Resultado do upload:', uploadResult);
+        } catch (uploadError) {
+          console.error('Erro ao enviar anexos:', uploadError);
+          // Não interrompe o fluxo se houver erro no upload de anexos
+        }
       }
       
       setShowForm(false);
@@ -1546,6 +1577,11 @@ const Tasks = () => {
               </select>
             </div>
           )}
+
+          <div className="form-group">
+            <label>Anexos</label>
+            <FileUpload ref={fileUploadRef} taskId={formData.id || ''} disabled={loading} />
+          </div>
 
           <div className="form-actions">
             <button 

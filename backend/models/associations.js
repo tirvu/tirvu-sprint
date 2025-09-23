@@ -5,6 +5,7 @@ const Backlog = require('./Backlog');
 const Sprint = require('./Sprint');
 const TaskHourHistory = require('./TaskHourHistory');
 const TaskHourAttachment = require('./TaskHourAttachment');
+const TaskAttachment = require('./TaskAttachment');
 
 // Associações de Task
 Task.belongsTo(User, { foreignKey: 'userId' });
@@ -31,11 +32,19 @@ TaskHourHistory.hasMany(TaskHourAttachment, { foreignKey: 'taskHourHistoryId' })
 TaskHourAttachment.belongsTo(User, { foreignKey: 'userId' });
 User.hasMany(TaskHourAttachment, { foreignKey: 'userId' });
 
+// Associações de TaskAttachment
+TaskAttachment.belongsTo(Task, { foreignKey: 'taskId' });
+Task.hasMany(TaskAttachment, { foreignKey: 'taskId' });
+
+TaskAttachment.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(TaskAttachment, { foreignKey: 'userId' });
+
 module.exports = {
   User,
   Task,
   Backlog,
   Sprint,
   TaskHourHistory,
-  TaskHourAttachment
+  TaskHourAttachment,
+  TaskAttachment
 };

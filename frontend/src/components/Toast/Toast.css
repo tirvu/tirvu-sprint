@@ -68,3 +68,8 @@
   background-color: #ff9800;
   color: white;
 }
+
+.toast-loading {
+  background-color: #9c27b0;
+  color: white;
+}

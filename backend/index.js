@@ -34,18 +34,10 @@ app.use('/api/backlogs', require('./controllers/backlogController'));
 app.use('/api/tasks', require('./controllers/taskController'));
 app.use('/api/hour-history', require('./controllers/taskHourHistoryController'));
 app.use('/api/attachments', require('./controllers/taskHourAttachmentController'));
+app.use('/api/task-attachments', require('./controllers/taskAttachmentController'));
 
 // Iniciar o servidor sem sincronização automática
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
-
-// Comentado temporariamente para evitar problemas de sincronização
-// sequelize.sync({ alter: true })
-//   .then(() => {
-//     console.log('Banco de dados sincronizado');
-//   })
-//   .catch(err => {
-//     console.error('Erro ao sincronizar o banco de dados:', err);
-//   });

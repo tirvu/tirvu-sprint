@@ -1,0 +1,332 @@
+/* Estilos para o componente de upload de anexos com prefixo 'task-' para evitar conflitos */
+.task-file-upload-container {
+  margin-top: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 12px;
+  background-color: #f9f9f9;
+}
+
+.task-file-upload-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-file-upload-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.task-file-upload-label:hover {
+  background-color: #0069d9;
+}
+
+.task-file-input {
+  display: none;
+}
+
+.task-file-upload-info {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+/* Estilos para arquivos selecionados */
+.task-selected-files {
+  margin-top: 15px;
+  border-top: 1px solid #ddd;
+  padding-top: 15px;
+}
+
+.task-selected-files-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.task-selected-files-header h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.task-upload-button {
+  padding: 6px 12px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.task-upload-button:hover {
+  background-color: #218838;
+}
+
+.task-upload-button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.task-selected-files ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.task-selected-files li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-bottom: 1px solid #eee;
+  background-color: white;
+  border-radius: 4px;
+  margin-bottom: 5px;
+}
+
+.task-file-name {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 10px;
+}
+
+.task-file-size {
+  font-size: 0.8rem;
+  color: #666;
+  margin-right: 10px;
+  white-space: nowrap;
+}
+
+.task-remove-file {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s ease;
+}
+
+.task-remove-file:hover {
+  color: #bd2130;
+}
+
+.task-remove-file:disabled {
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Estilos para lista de anexos */
+.task-attachments-container {
+  margin-top: 20px;
+  border-top: 1px solid #ddd;
+  padding-top: 15px;
+}
+
+.task-attachments-container h4 {
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+}
+
+.task-attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-attachment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+}
+
+.task-attachment-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.task-attachment-name {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-attachment-size {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.task-attachment-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.task-btn-action {
+  background: none;
+  border: none;
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.task-btn-view {
+  color: #007bff;
+}
+
+.task-btn-view:hover {
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+.task-btn-delete {
+  color: #dc3545;
+}
+
+.task-btn-delete:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* Estilos para preview de anexos dentro do modal */
+.task-attachment-preview-modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  max-height: 500px;
+  margin-top: 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.task-preview-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #ddd;
+}
+
+.task-close-preview {
+  background-color: #dc3545;
+  border: none;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.task-close-preview:hover {
+  background-color: #c82333;
+}
+
+.task-attachment-preview-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  background-color: #f8f9fa;
+  overflow: hidden;
+  min-height: 400px;
+}
+
+.task-attachment-preview-container img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.task-attachment-preview-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.task-compressed-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(40, 167, 69, 0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.task-download-prompt {
+  text-align: center;
+  padding: 20px;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.task-download-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  margin-top: 15px;
+  transition: background-color 0.2s ease;
+}
+
+.task-download-button:hover {
+  background-color: #0069d9;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .task-attachment-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .task-attachment-actions {
+    margin-top: 10px;
+    align-self: flex-end;
+  }
+  
+  .task-selected-files li {
+    flex-wrap: wrap;
+  }
+  
+  .task-file-size {
+    margin-top: 5px;
+  }
+}
