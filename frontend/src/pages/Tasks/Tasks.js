@@ -114,6 +114,8 @@ const Tasks = () => {
   const [hoursFormData, setHoursFormData] = useState({
     description: '',
     hours: '',
+    startTime: '',
+    endTime: '',
     attachments: []
   });
   const [hourHistory, setHourHistory] = useState([]);
@@ -388,10 +390,13 @@ const Tasks = () => {
     if (!taskToRegisterHours) return;
     
     // Validar dados
-    if (!hoursFormData.hours || !hoursFormData.description) {
+    if (!hoursFormData.startTime || !hoursFormData.endTime || !hoursFormData.description) {
       setError('Preencha todos os campos');
       return;
     }
+    
+    // Calcular horas trabalhadas
+    const calculatedHours = calculateHours(hoursFormData.startTime, hoursFormData.endTime);
     
     try {
       setLoading(true);
@@ -400,14 +405,14 @@ const Tasks = () => {
       const hourData = {
         taskId: taskToRegisterHours.id,
         description: hoursFormData.description,
-        hours: parseFloat(hoursFormData.hours)
+        hours: calculatedHours
       };
       
       // Enviar para a API
       const response = await axios.post(`${API_ENDPOINTS.HOUR_HISTORY}`, {
         taskId: taskToRegisterHours.id,
         description: hoursFormData.description,
-        hours: parseFloat(hoursFormData.hours)
+        hours: calculatedHours
       });
       
       // Se houver anexos, fazer upload
@@ -470,7 +475,8 @@ const Tasks = () => {
       // Limpar formulário e fechar modal
       setHoursFormData({
         description: '',
-        hours: '',
+        startTime: '',
+        endTime: '',
         attachments: []
       });
       setShowHoursForm(false);
@@ -614,6 +620,33 @@ const Tasks = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+  
+  // Calcular horas trabalhadas a partir dos horários de início e fim
+  const calculateHours = (startTime, endTime) => {
+    if (!startTime || !endTime) return 0;
+    
+    // Converter strings de hora para objetos Date
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    
+    // Criar objetos Date com a data atual
+    const start = new Date();
+    start.setHours(startHour, startMinute, 0, 0);
+    
+    const end = new Date();
+    end.setHours(endHour, endMinute, 0, 0);
+    
+    // Se o horário de fim for menor que o de início, assumimos que passou para o dia seguinte
+    if (end < start) {
+      end.setDate(end.getDate() + 1);
+    }
+    
+    // Calcular a diferença em milissegundos e converter para horas
+    const diffMs = end - start;
+    const diffHours = diffMs / (1000 * 60 * 60);
+    
+    return diffHours;
   };
   
   // Formatar tamanho do arquivo
@@ -1308,23 +1341,51 @@ const Tasks = () => {
             </div>
           </div>
           
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="startTime">
+                <FontAwesomeIcon icon="fa-solid fa-hourglass-start" style={{ marginRight: '5px' }} />
+                Hora Início
+              </label>
+              <div className="input-with-icon">
+                <input
+                  type="time"
+                  id="startTime"
+                  name="startTime"
+                  value={hoursFormData.startTime}
+                  onChange={handleHoursFormChange}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="endTime">
+                <FontAwesomeIcon icon="fa-solid fa-hourglass-end" style={{ marginRight: '5px' }} />
+                Hora Fim
+              </label>
+              <div className="input-with-icon">
+                <input
+                  type="time"
+                  id="endTime"
+                  name="endTime"
+                  value={hoursFormData.endTime}
+                  onChange={handleHoursFormChange}
+                  required
+                />
+              </div>
+            </div>
+          </div>
+          
           <div className="form-group">
-            <label htmlFor="hours">
+            <label>
               <FontAwesomeIcon icon="fa-solid fa-stopwatch" style={{ marginRight: '5px' }} />
-              Horas Trabalhadas
+              Horas Calculadas
             </label>
-            <div className="input-with-icon">
-              <input
-                type="number"
-                id="hours"
-                name="hours"
-                value={hoursFormData.hours}
-                onChange={handleHoursFormChange}
-                min="0.1"
-                step="0.1"
-                required
-                placeholder="Horas trabalhadas"
-              />
+            <div className="calculated-hours">
+              {hoursFormData.startTime && hoursFormData.endTime ? 
+                calculateHours(hoursFormData.startTime, hoursFormData.endTime).toFixed(1) + ' horas' : 
+                'Preencha os horários acima'}
             </div>
           </div>
           
