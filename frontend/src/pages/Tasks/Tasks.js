@@ -84,6 +84,15 @@ const Tasks = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Estados para filtros
+  const [filters, setFilters] = useState({
+    backlog: '',
+    sprint: '',
+    type: '',
+    priority: '',
+    user: ''
+  });
   const [currentSprint, setCurrentSprint] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('all');
   
@@ -634,14 +643,55 @@ const Tasks = () => {
     }
   };
 
-  // Filtrar tarefas por status
+  // Filtrar tarefas por status e outros filtros
   const filterTasksByStatus = (status) => {
     // As tarefas já devem estar filtradas por usuário no useEffect e fetchTasks
-    // Aqui apenas filtramos por status
-    if (status === 'all') {
-      return tasks;
+    // Aqui filtramos por status e outros filtros
+    let filteredTasks = tasks;
+    
+    if (status !== 'all') {
+      filteredTasks = filteredTasks.filter(task => task.status === status);
     }
-    return tasks.filter(task => task.status === status);
+    
+    // Aplicar filtros adicionais
+    if (filters.backlog) {
+      filteredTasks = filteredTasks.filter(task => task.backlogId === parseInt(filters.backlog));
+    }
+    
+    if (filters.sprint) {
+      filteredTasks = filteredTasks.filter(task => task.sprintId === parseInt(filters.sprint));
+    }
+    
+    if (filters.type) {
+      filteredTasks = filteredTasks.filter(task => task.type === filters.type);
+    }
+    
+    if (filters.priority) {
+      filteredTasks = filteredTasks.filter(task => task.priority === filters.priority);
+    }
+    
+    if (filters.user && user.role === 'admin') {
+      filteredTasks = filteredTasks.filter(task => String(task.userId) === String(filters.user));
+    }
+    
+    return filteredTasks;
+  };
+  
+  // Limpar filtros
+  const clearFilters = () => {
+    setFilters({
+      backlog: '',
+      sprint: '',
+      type: '',
+      priority: '',
+      user: ''
+    });
+  };
+  
+  // Atualizar filtros
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
   };
 
   if (loading && tasks.length === 0) {
@@ -781,18 +831,18 @@ const Tasks = () => {
     setShowHoursForm(true);
   };
 
-  const renderPendingActions = (row) => (
+  const renderPendingActions = (row) => {
+    // Verificar se o usuário atual é o responsável pela tarefa
+    const isResponsible = String(row.raw.userId) === String(user.id);
+    const startButtonTitle = isResponsible ? "Iniciar" : "Apenas o responsável pode iniciar esta tarefa";
+    
+    return (
     <div className="table-actions">
       <button 
-        className="btn-start-task"
-        onClick={() => {
-          // Verificar se o usuário logado é o responsável pela tarefa
-          if (String(row.raw.userId) === String(user.id)) {
-            updateTaskStatus(row.id, 'in_progress');
-          } else {
-            toast.error('Somente o responsável pela tarefa pode iniciá-la.');
-          }
-        }}
+        className={`btn-start-task ${!isResponsible ? 'disabled' : ''}`}
+        onClick={() => isResponsible && updateTaskStatus(row.id, 'in_progress')}
+        title={startButtonTitle}
+        disabled={!isResponsible}
       >
         <FontAwesomeIcon icon="play" /> Iniciar
       </button>
@@ -831,6 +881,7 @@ const Tasks = () => {
       </button>
     </div>
   );
+};
 
   const renderInProgressActions = (row) => (
     <div className="table-actions">
@@ -930,18 +981,6 @@ const Tasks = () => {
 
   return (
     <div className="tasks-container">
-      <ToastContainer 
-        position="top-right" 
-        autoClose={5000} 
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        style={{ zIndex: 9999 }}
-      />
       <div className="tasks-header">
         <h1>Tarefas</h1>
         <button 
@@ -964,6 +1003,94 @@ const Tasks = () => {
         </button>
       </div>
 
+      {/* Filtros */}
+      <div className="tasks-filters">
+        <div className="filter-row">
+          <div className="filter-group">
+            <label>Backlog:</label>
+            <select 
+              name="backlog" 
+              value={filters.backlog} 
+              onChange={handleFilterChange}
+            >
+              <option value="">Todos</option>
+              {backlogs.map(backlog => (
+                <option key={backlog.id} value={backlog.id}>{backlog.title}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label>Status:</label>
+            <select 
+              value={selectedStatus} 
+              onChange={(e) => setSelectedStatus(e.target.value)}
+            >
+              <option value="all">Todas as tarefas</option>
+              <option value="pending">Pendentes</option>
+              <option value="in_progress">Em Progresso</option>
+              <option value="completed">Concluídas</option>
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label>Tipo:</label>
+            <select 
+              name="type" 
+              value={filters.type} 
+              onChange={handleFilterChange}
+            >
+              <option value="">Todos</option>
+              {typeOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label>Prioridade:</label>
+            <select 
+              name="priority" 
+              value={filters.priority} 
+              onChange={handleFilterChange}
+            >
+              <option value="">Todas</option>
+              {priorityOptions.map(option => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+          
+          {user.role === 'admin' && (
+            <div className="filter-group">
+              <label>Usuário:</label>
+              <select 
+                name="user" 
+                value={filters.user} 
+                onChange={handleFilterChange}
+              >
+                <option value="">Todos</option>
+                {users.map(user => (
+                  <option key={user.id} value={user.id}>{user.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          
+          <div className="task-count-info">
+            {selectedStatus === 'all' ? (
+              <span>Total: {tasks.length} tarefas</span>
+            ) : (
+              <span>{getStatusLabel(selectedStatus)}: {filterTasksByStatus(selectedStatus).length} tarefas</span>
+            )}
+          </div>
+          
+          <button className="btn-clear-filters" onClick={clearFilters}>
+            <FontAwesomeIcon icon="times" /> Limpar
+          </button>
+        </div>
+      </div>
+      
       {error && <div className="tasks-error">{error}</div>}
 
       <Modal 
@@ -1436,27 +1563,6 @@ const Tasks = () => {
       </Modal>
 
       <div className="tasks-unified">
-        <div className="status-filter">
-          <label htmlFor="status-select">Filtrar por status:</label>
-          <select 
-            id="status-select" 
-            value={selectedStatus} 
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="status-select"
-          >
-            <option value="all">Todas as tarefas</option>
-            <option value="pending">Pendentes</option>
-            <option value="in_progress">Em Progresso</option>
-            <option value="completed">Concluídas</option>
-          </select>
-          <div className="task-count-info">
-            {selectedStatus === 'all' ? (
-              <span>Total: {tasks.length} tarefas</span>
-            ) : (
-              <span>{getStatusLabel(selectedStatus)}: {filterTasksByStatus(selectedStatus).length} tarefas</span>
-            )}
-          </div>
-        </div>
         
         <div className="tasks-table">
           <Table 
